@@ -104,56 +104,59 @@ void sa_shed(Shed *shed, Graph &graph, Graph &best_graph, map<int, set<int>> &fl
 int main() {
 	std::ios_base::sync_with_stdio(false);
 
-	vector<unsigned> job_num = {10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000};
-	vector<unsigned> proc_num = {2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120 ,140, 160};
+	string path_data, path_system, path_res;
 
-	string path_res = "Input/res/200_20.txt";
+	cout << "Enter name of file with graph (file must be located in directory 'Input/data/')" << endl << ">";
+	std::cin >> path_data;
+	path_data = "Input/data/" + path_data;
+	cout << endl;
 
- 	vector<std::function<double(int)>> laws;
- 	laws.push_back(std::bind(boltz, _1));
- 	laws.push_back(std::bind(cauchy, _1));
- 	laws.push_back(std::bind(law, _1));
+	cout << "Enter name of file with system (file must be located in directory 'Input/sys/')" << endl << ">";
+	std::cin >> path_system;
+	path_system = "Input/sys/" + path_system;
+	cout << endl;
 
-	for (auto j : job_num) {
-		for (auto p : proc_num) {
-			if (p > j / 2 || (j == 400 && p <= 100))
-				continue;
+	cout << "Enter name of file with optimum energy (file must be located in directory 'Input/opt/')" << endl;
+	cout << "The found solution will be written to the file of same name in directory 'Output/'" << endl << ">";
+	std::cin >> path_res;
+	path_res = "Output/" + path_res;
+	cout << endl;
 
-			string path_data = "Input/data/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
-			string path_system = "Input/sys/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
-			string path_res = "Input/res/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
+	cout << "If data file or the file with system info does not exist, the program will terminate with error!" << endl << endl;
+	cout << path_data << endl << path_system << endl << path_res << endl;
 
-			cout << path_data << endl << path_system << endl << path_res << endl;
-			map<int, set<int>> flws;
-			Graph graph(flws, path_data), best_graph(graph);
-		    Shed *shed = new Shed(graph, path_system);
-		    shed->build(graph);
+	map<int, set<int>> flws;
+	Graph graph(flws, path_data), best_graph(graph);
+    Shed *shed = new Shed(graph, path_system);
+    shed->build(graph);
 
-		    double best = shed->get_energy();
+    double best = shed->get_energy();
 
-		    cout << "----------------------" << endl;
-		    cout << best << endl;
-		    char fl = -1;
-		    sa_shed(shed, graph, best_graph, flws, best, std::bind(cauchy, _1), fl);
+    cout << "----------------------" << endl;
+    cout << "Begin energy = " << best << endl << endl;
 
-		    if (shed->is_correct(best_graph, flws))
-		    	cout << "Correct." << endl;
-			else {
-				best_graph.print_procid();
-				shed->print(best_graph);
-		    	cout << "-----------Schedul is not correct!!!-----------" << endl;
-		    	return 0;
-		    }
-		    // shed->print();
-		    cout << endl << "Best energy: " << best << endl;
-		    cout << "Best energy: " << shed->get_energy() << endl;
-			std::ofstream outfile;
-			outfile.open(path_res);
-			outfile << std::to_string(best) << endl;
-			outfile.close();
+    char fl = -1;
+    sa_shed(shed, graph, best_graph, flws, best, std::bind(cauchy, _1), fl);
 
-			delete shed;
-		}
-	}
+    if (shed->is_correct(best_graph, flws))
+    	cout << "Schedule is correct." << endl;
+	else {
+		best_graph.print_procid();
+		shed->print(best_graph);
+    	cout << "-----------Schedul is not correct!!!-----------" << endl;
+    	return 0;
+    }
+
+    // shed->print(graph);
+    cout << endl << "Best energy: " << best << endl;
+    cout << "Best energy: " << shed->get_energy() << endl;
+
+	std::ofstream outfile;
+	outfile.open(path_res);
+	outfile << std::to_string(best) << endl;
+	outfile.close();
+
+	delete shed;
+
     return 0;
 }

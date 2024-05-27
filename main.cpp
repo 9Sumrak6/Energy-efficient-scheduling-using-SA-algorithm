@@ -147,7 +147,6 @@ int main() {
     	return 0;
     }
 
-    // shed->print(graph);
     cout << endl << "Best energy: " << best << endl;
     cout << "Best energy: " << shed->get_energy() << endl;
 

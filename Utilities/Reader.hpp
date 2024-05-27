@@ -25,7 +25,6 @@ public:
 
 pair<int, map<int, set<int>>> Reader::readGraph(const string &path, map<int, Job> &jobs) {
     std::ifstream f(path);
-
     string line;
     getline(f, line);
 

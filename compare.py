@@ -1,4 +1,5 @@
-# import matplotlib as plt
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 def plot(x, y):
@@ -26,7 +27,7 @@ if __name__ == "__main__":
             file_name = str(j_n) + "_" + str(p_n)
 
             path_opt = "Input/opt/" + file_name + ".txt"
-            path_res = "Input/res/" + file_name + ".txt"
+            path_res = "Output/" + file_name + ".txt"
 
             f_opt = open(path_opt, "r")
             f_res = open(path_res, "r")
@@ -43,11 +44,28 @@ if __name__ == "__main__":
             f_opt.close()
             f_res.close()
 
-    print(x)
-    print()
-    print(y_abs)
-    print()
-    print(y_opt)
-    print()
-    print(y_res)
-    print()
+    for i in x:
+        abs = np.array(y_abs[i], dtype=float)
+        res = np.array(y_res[i], dtype=float)
+        opt = np.array(y_opt[i], dtype=float)
+
+    font = {'weight' : 'bold', 'size' : 16}
+    plt.rc('font', **font)
+    for i in x:
+        X = x[i]
+        abs = np.array(y_abs[i], dtype=float)
+        opt = np.array(y_opt[i], dtype=float)
+        res = np.array(y_res[i], dtype=float)
+
+        plt.figure(figsize=(20, 10))
+        plt.grid(True)
+        plt.title(f'{i} processors')
+
+        plt.plot(X, res / opt, label='opt')
+        plt.plot(X, res / abs, label='abs')
+
+        plt.ylabel('E_res / E_best')
+        plt.xlabel('Test file')
+
+        plt.legend()
+        plt.savefig(f'Graphics/{i}.png', bbox_inches='tight')

@@ -1,161 +1,171 @@
-#include <ctime>
-#include <cmath>
-#include <time.h>
+#include <memory>      // Для std::unique_ptr
+#include <random>      // Для случайных чисел
+#include <functional>  // Для std::function
+#include <cmath>       // Для log и exp
 #include "Utilities/Shed.hpp"
 
-using std::placeholders::_1;
-
-const double INIT_TEMP = 10;
-const double MIN_TEMP = 0.01;
-const int STEP_NUM = 500;
-
-
 double boltz(int i) {
-	return INIT_TEMP / log(i + 1);
+    return INIT_TEMP / log(i + 1);
 }
 
 double cauchy(int i) {
-	return INIT_TEMP / (i + 1);
+    return INIT_TEMP / (i + 1);
 }
 
 double law(int i) {
-	return INIT_TEMP * log(i + 1) / (i + 1);
+    return INIT_TEMP * log(i + 1) / (i + 1);
 }
 
-std::pair<bool, Shed *> generate_neighbor(Shed *shed, Graph &graph, map<int, set<int>> &flws, char &fl) {
-	Shed *new_shed = new Shed(*shed);
-	bool ans = true;
+std::pair<bool, std::unique_ptr<Shed>> generate_neighbor(const std::unique_ptr<Shed>& shed, Graph& graph, map<int, set<int>>& flws, char& fl, std::mt19937& rng) {
+    auto new_shed = std::make_unique<Shed>(*shed);
+    bool success = true;
 
-	int a = rand() % 3;
-	switch (a) {
-		// move to another proc
-		case 0:
-			fl = 0;
-			ans = new_shed->move_random_job(graph);
-			break;
-		// switch 
-		case 1:
-			fl = 1;
-			break;
-			ans = new_shed->switch_jobs(graph, flws);
-			break;
-		// set freq
-		case 2:
-			fl = 2;
-			ans = new_shed->set_random_freq(graph);
-			break;
-	}
+    std::uniform_int_distribution<int> action_dist(0, 2);  // Генерация случайного действия
+    int action = action_dist(rng);
 
-    return std::pair{ans, new_shed};
-}
-
-void sa_shed(Shed *shed, Graph &graph, Graph &best_graph, map<int, set<int>> &flws, double &best, std::function<double(int)> f, char fl) {
-    srand(time(0));
-
-    Shed *cur_shed = new Shed(*shed);
-
-    int i = 0, non_progress = 0;
-    double t = INIT_TEMP;
-    // clock_t start;
-    while(non_progress <= 5000){
-        for (int j = 0; j < STEP_NUM; j++) {
-	        std::pair<bool, Shed *> neigbor = generate_neighbor(cur_shed, graph, flws, fl);
-	        if (!neigbor.first) {
-	        	++non_progress;
-	        	delete neigbor.second;
-
-	        	continue;
-	        }
-	        Shed *new_shed = neigbor.second;
-	        new_shed->build(graph);
-	        double cur_energy = cur_shed->get_energy(), new_energy = new_shed->get_energy();
-
-	        if (new_energy < cur_energy || (rand() / double(RAND_MAX)) < exp((cur_energy - new_energy) / t)) {
-	        	graph.erase_ch();
-	        	delete cur_shed;
-	        	cur_shed = new_shed;
-
-	            if (new_energy < best) {
-	            	// delete shed;
-	                *shed = *cur_shed;
-	                best_graph = graph;
-	                best = new_energy;
-	                non_progress = 0;
-	            }
-	            
-	            // delete new_shed;
-	        } else {
-	        	graph.backup();
-	        	delete new_shed;
-	        }
- 
-			if (non_progress > 6000)
-	           	return;
-
-	        ++i;
-	        ++non_progress;
-       	}
-       	t = f(i++);
+    switch (action) {
+        case 0:
+            fl = 0;
+            success = new_shed->move_random_job(graph);
+            break;
+        case 1:
+            fl = 1;
+            success = new_shed->switch_jobs(graph, flws);
+            break;
+        case 2:
+            fl = 2;
+            success = new_shed->set_random_freq(graph);
+            break;
     }
-    // Распечатать окончательное решение
-    return;
+
+
+    return {success, std::move(new_shed)};
+}
+
+void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, map<int, set<int>>& flws, double& best, std::function<double(int)> temp_func, char fl) {
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
+    auto cur_shed = std::make_unique<Shed>(*shed);
+    int iteration = 0;
+    double temperature = INIT_TEMP;
+
+    while (temperature >= MIN_TEMP) {
+        int non_progress = 0;
+        for (int i = 0; i < STEP_NUM; ++i) {
+        	// auto start = std::chrono::high_resolution_clock::now();
+            auto [success, new_shed] = generate_neighbor(cur_shed, graph, flws, fl, rng);
+            if (!success) {
+                ++non_progress;
+                continue;
+            }
+            new_shed->build(graph);
+
+            if (!new_shed->is_correct(graph, flws)) {
+            	cout << "--------------------" << endl;
+            	return;
+            }
+
+            double cur_energy = cur_shed->get_energy();
+            double new_energy = new_shed->get_energy();
+
+            std::uniform_real_distribution<double> prob_dist(0.0, 1.0);
+            if (new_energy < cur_energy || prob_dist(rng) < exp((cur_energy - new_energy) / temperature)) {
+                graph.erase_ch();
+                cur_shed = std::move(new_shed);
+
+                if (new_energy < best) {
+                    *shed = *cur_shed;
+                    best_graph = graph;
+                    best = new_energy;
+                    non_progress = 0;
+                }
+            } else {
+                graph.backup();
+                ++non_progress;
+            }
+            // auto end = std::chrono::high_resolution_clock::now();
+
+		    // Вычисление продолжительности
+		    // std::chrono::duration<double, std::milli> duration = end - start;
+
+		    // Вывод результата
+		    // std::cout << "T: " << duration.count() << std::endl;
+        }
+
+        temperature = temp_func(++iteration);
+    }
 }
 
 int main() {
-	std::ios_base::sync_with_stdio(false);
+    std::ios_base::sync_with_stdio(false);
 
-	string path_data, path_system, path_res;
+    vector<int> _jobs = {10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000};
+    vector<int> _procs = {2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160};
 
-	cout << "Enter name of file with graph (file must be located in directory 'Input/data/')" << endl << ">";
-	std::cin >> path_data;
-	path_data = "Input/data/" + path_data;
-	cout << endl;
+    for (auto j : _jobs) {
+        for (auto p : _procs) {
+            if (2 * p > j)
+                break;
 
-	cout << "Enter name of file with system (file must be located in directory 'Input/sys/')" << endl << ">";
-	std::cin >> path_system;
-	path_system = "Input/sys/" + path_system;
-	cout << endl;
+            cout << "Jobs : " << j << ",  Procs : " << p << endl;
+            for (int it = 0; it < 5; ++it) {
+                // cout << "HERE" << it << endl;
+                std::string path_data, path_system, path_res;
 
-	cout << "Enter name of file with optimum energy (file must be located in directory 'Input/opt/')" << endl;
-	cout << "The found solution will be written to the file of same name in directory 'Output/'" << endl << ">";
-	std::cin >> path_res;
-	path_res = "Output/" + path_res;
-	cout << endl;
+                // std::cout << "Enter name of file with graph (file must be located in directory 'Input/data/')\n>";
+                // std::cin >> path_data;
+                // path_system = "Input/sys/" + path_data;
+                path_data = "Input/data/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
 
-	cout << "If data file or the file with system info does not exist, the program will terminate with error!" << endl << endl;
-	cout << path_data << endl << path_system << endl << path_res << endl;
+                // std::cout << "Enter name of file with system (file must be located in directory 'Input/sys/')\n>";
+                // std::cin >> path_system;
+                // path_system = "Input/sys/" + path_system;
+                path_system = "Input/sys/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
 
-	map<int, set<int>> flws;
-	Graph graph(flws, path_data), best_graph(graph);
-    Shed *shed = new Shed(graph, path_system);
-    shed->build(graph);
+                // std::cout << "Enter name of file with optimum energy (file must be located in directory 'Input/opt/')\n>";
+                // std::cin >> path_res;
+                // path_res = "Output/" + path_res;
+                path_res = "Output/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
 
-    double best = shed->get_energy();
+                map<int, set<int>> flws;
+                Graph graph(flws, path_data), best_graph(graph);
 
-    cout << "----------------------" << endl;
-    cout << "Begin energy = " << best << endl << endl;
+                auto shed = std::make_unique<Shed>(graph, path_system);
+                shed->build(graph);
 
-    char fl = -1;
-    sa_shed(shed, graph, best_graph, flws, best, std::bind(cauchy, _1), fl);
+                double best_energy = shed->get_energy();
 
-    if (shed->is_correct(best_graph, flws))
-    	cout << "Schedule is correct." << endl;
-	else {
-		best_graph.print_procid();
-		shed->print(best_graph);
-    	cout << "-----------Schedul is not correct!!!-----------" << endl;
-    	return 0;
+                // std::cout << "Begin energy = " << best_energy << endl;
+
+                char fl = -1;
+                sa_shed(shed, graph, best_graph, flws, best_energy, cauchy, fl);
+                std::cout << "----------------------" << endl;
+
+                if (shed->is_correct(best_graph, flws)) {
+                    std::cout << "Schedule is correct.\n";
+                } else {
+                    best_graph.print_procid();
+                    shed->print(best_graph);
+                    std::cerr << "-----------Schedule is not correct!!!-----------\n";
+                    continue;
+                }
+
+                // std::cout << "\nBest energy: " << best_energy << "\n";
+
+                std::ifstream infile(path_res);
+                string in;
+                getline(infile, in);
+                double best_prev = stod(in);
+
+                std::ofstream outfile(path_res);
+                outfile << std::min(best_energy, best_prev) << "\n";
+                cout << "Best = " << std::min(best_energy, best_prev) << endl;
+            }
+        }
+        // cout << "HERE" << endl;
     }
-
-    cout << endl << "Best energy: " << best << endl;
-    cout << "Best energy: " << shed->get_energy() << endl;
-
-	std::ofstream outfile;
-	outfile.open(path_res);
-	outfile << std::to_string(best) << endl;
-	outfile.close();
-
-	delete shed;
+        // cout << "HERE1wwwww" << endl;
 
     return 0;
 }

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <algorithm>
-
 #include "Reader.hpp"
 
 
@@ -14,12 +12,15 @@ class Graph {
 
     int n_jobs;
 
-    map<int, Job> jobs;
+    vector<Job> jobs;
     map<int, Job> jobs_ch;
 
-    map<int, set<int>> graph;
+    vector<set<int>> graph;
+    vector<set<int>> prevs;
 
     vector<int> topo;
+    vector<bool> changed;
+
     map<int, int> topo_ch;
     void find_follows(int id, map<int, set<int>> &follows, set<int> &checked);
     void topological_sort_util(int v, bool visited[]);
@@ -29,27 +30,34 @@ public:
 
     Graph(map<int, set<int>> &follows, const string& path = "");
 
-    Job get_job(int id);
-
     ull set_arr_time(int job_id, ull arr_time, bool fl = false);
     ull set_prev_time(int job_id, ull prev_time, bool restart = false, bool fl = false);
     bool set_freq(int job_id, double freq, bool fl = false);
     bool set_job(int job_id, int proc_id, bool fl = false);
     void set_job_proc_lvl(int job_id, int proc_lvl, bool fl = false);
-
+    void set_unchanged(int job_id) { changed[job_id] = false; }
     void switch_lvl(int job1, int job2);
     
-    int get_job_num();
+    set<int> get_prevs(int pos) const {
+        if (pos < 0 || pos >= n_jobs)
+            return set<int>();
 
-    vector<int> get_topo();
+        return prevs[pos];
+    }
+
+    bool is_changed(int pos) const { return changed[pos]; }
+    Job get_job(int id) const;
+    int get_job_num() const ;
+    int get_job_lvl(int id) { return jobs[id].lvl; }
+    vector<int> get_topo() const;
 
     void erase_ch();
     void backup();
 
-    void print();
-    void print_procid();
+    void print() const;
+    void print_procid() const;
 
-    set<int> operator[](unsigned index) { return graph[index]; }
+    set<int> operator[](unsigned index) const { return graph[index]; }
 };
 
 void Graph::find_follows(int id, map<int, set<int>> &flws, set<int> &checked) {
@@ -101,42 +109,52 @@ Graph::Graph(map<int, set<int>> &follows, const string& path) {
 
     Reader reader;
 
-    pair<int, map<int, set<int>>> in = reader.readGraph(path, jobs);
+    pair<int, vector<set<int>>> in = reader.readGraph(path, jobs);
 
     n_jobs = in.first;
     free_jobs = n_jobs;
     graph = in.second;
+    prevs = vector<set<int>>(n_jobs);
+    changed = vector<bool>(n_jobs, false);
 
     inp_path = path;
 
-    for (auto &[id, jobs] : graph) {
+    for (int id = 0; id < n_jobs; ++id) {
         set<int> checked;
 
         find_follows(id, follows, checked);
+
+        for (const auto &next : graph[id])
+            prevs[next].insert(id);
     }
+
     topological_sort();
 }
 
-Job Graph::get_job(int id) {
+Job Graph::get_job(int id) const {
     return jobs[id];
 }
 
 bool Graph::set_freq(int job_id, double freq, bool fl) {
-
-    if (jobs.count(job_id) > 0) {
-        if (fl)
+    if (fl)
+        if (jobs_ch.count(job_id) == 0)
             jobs_ch[job_id] = jobs[job_id];
-        jobs[job_id].cur_time = ceil((jobs[job_id].beg_time * jobs[job_id].beg_freq) / freq);
+        else
+            jobs_ch[job_id].cur_time = jobs[job_id].cur_time;
 
-        return true;
-    }
+    jobs[job_id].cur_time = ceil((jobs[job_id].beg_time * jobs[job_id].beg_freq) / freq);
+    return true;
+    // }
 
-    return false;
+    // return false;
 }
 
 void Graph::set_job_proc_lvl(int job_id, int lvl, bool fl) {
     if (fl)
-        jobs_ch[job_id] = jobs[job_id];
+        if (jobs_ch.count(job_id) == 0)
+            jobs_ch[job_id] = jobs[job_id];
+        else
+            jobs_ch[job_id].proc_lvl = jobs[job_id].proc_lvl;
 
     if (lvl == -1)
         ++jobs[job_id].proc_lvl;
@@ -149,7 +167,20 @@ void Graph::set_job_proc_lvl(int job_id, int lvl, bool fl) {
 void Graph::switch_lvl(int job1, int job2) {
     int lvl1 = jobs[job1].lvl, lvl2 = jobs[job2].lvl, proc_lvl1 = jobs[job1].proc_lvl;
 
-    jobs_ch[job1] = jobs[job1], jobs_ch[job2] = jobs[job2];
+    if (jobs_ch.count(job1) == 0)
+        jobs_ch[job1] = jobs[job1];
+    else {
+        jobs_ch[job1].lvl = jobs[job1].lvl;
+        jobs_ch[job1].proc_lvl = jobs[job1].proc_lvl;
+    }
+
+    if (jobs_ch.count(job2) == 0)
+        jobs_ch[job2] = jobs[job2];
+    else{
+        jobs_ch[job2].lvl = jobs[job2].lvl;
+        jobs_ch[job2].proc_lvl = jobs[job2].proc_lvl;
+    }
+
     topo_ch[lvl1] = job1, topo_ch[lvl2] = job2;
     topo[lvl1] = job2, topo[lvl2] = job1;
 
@@ -159,69 +190,84 @@ void Graph::switch_lvl(int job1, int job2) {
 
 ull Graph::set_prev_time(int job_id, ull arr_time, bool restart, bool fl) {
     if (restart) {
-        jobs[job_id].prev_time = 0;
         if (fl && jobs_ch.count(job_id) > 0)
-           jobs_ch[job_id].prev_time = 0;
-    }
-    else {
-        jobs[job_id].prev_time = max(jobs[job_id].prev_time, arr_time);
+           jobs_ch[job_id].prev_time = jobs[job_id].prev_time;
+
+        jobs[job_id].prev_time = 0;
+    } else {
         if (fl && jobs_ch.count(job_id) > 0)
             jobs_ch[job_id].prev_time = max(jobs[job_id].prev_time, arr_time);
+
+        jobs[job_id].prev_time = max(jobs[job_id].prev_time, arr_time);
     }
+
+    changed[job_id] = true;
 
     return jobs[job_id].prev_time;
 }
 
 ull Graph::set_arr_time(int job_id, ull arr_time, bool fl) {
-    jobs[job_id].arrive_time = arr_time;
     if (fl && jobs_ch.count(job_id) > 0)
-        jobs_ch[job_id].arrive_time = arr_time;
+        jobs_ch[job_id].arrive_time = jobs[job_id].arrive_time;
+
+    jobs[job_id].arrive_time = arr_time;
+
+    changed[job_id] = true;
 
     return arr_time;
 }
 
 bool Graph::set_job(int job_id, int proc_id, bool fl) {
-    if (jobs.count(job_id) > 0) {
-        if (fl)
+    if (fl) {
+        if (jobs_ch.count(job_id) == 0)
             jobs_ch[job_id] = jobs[job_id];
-
-        if (proc_id < 0)
-            ++free_jobs;
-        if (jobs[job_id].proc_id < 0 && proc_id >= 0)
-            --free_jobs;
-
-        jobs[job_id].proc_id = proc_id;
-
-        return true;
+        else
+            jobs_ch[job_id].proc_id = jobs[job_id].proc_id;
     }
 
-    return false;
+    if (proc_id < 0)
+        ++free_jobs;
+    if (jobs[job_id].proc_id < 0 && proc_id >= 0)
+        --free_jobs;
+
+    jobs[job_id].proc_id = proc_id;
+
+    return true;
+
+    // return false;
 }
 
-int Graph::get_job_num() {
+int Graph::get_job_num() const {
     return n_jobs;
 }
 
-vector<int> Graph::get_topo() {
+vector<int> Graph::get_topo() const {
     return topo;
 }
 
 void Graph::erase_ch() {
+    // Используем перемещение для быстрого освобождения памяти
     jobs_ch.clear();
     topo_ch.clear();
 }
 
 void Graph::backup() {
-    for (auto &[id, job] : jobs_ch)
-        jobs[id] = job;
+    // Перенос данных из jobs_ch в jobs
+    for (auto &[id, job] : jobs_ch) {
+        jobs[id] = std::move(jobs_ch[id]); // Корректное перемещение значений
+    }
 
-    for (auto &[id, job] : topo_ch)
+    // Перенос данных из topo_ch в конец topo
+    // topo.insert(topo.end(), std::make_move_iterator(topo_ch.begin()), std::make_move_iterator(topo_ch.end()));
+    for (auto &[id, job] : topo_ch) {
+        // cout << ">>" << id << endl;
         topo[id] = job;
-
+    }
+    // Очищаем временные изменения
     erase_ch();
 }
 
-void Graph::print() {
+void Graph::print() const {
     int id = 0;
 
     // for (auto i : follows)
@@ -235,12 +281,18 @@ void Graph::print() {
     // }
     // cout << endl;
 
+    for (size_t i = 0; i < n_jobs; ++i) {
+        cout << "ID = " << i << ". PROC_ID = " << jobs[i].proc_id << endl; 
+        ++id;
+    }
+    cout << endl;
+
     cout << "List of edges (id of vertex_from, set of vertexes to):" << endl;
 
     id = 0;
-    for (auto i : graph) {
-        cout << i.first << " :: ";
-        for (auto j : i.second)
+    for (size_t i = 0; i < n_jobs; ++i) {
+        cout << i << " :: ";
+        for (auto j : graph[i])
             cout << j << " "; 
         cout << endl;
         ++id;
@@ -252,16 +304,16 @@ void Graph::print() {
     cout << endl;
 }
 
-void Graph::print_procid() {
+void Graph::print_procid() const {
     cout << "-------------->PROC_ID" << endl;
-    for (auto i : graph)
-        cout << jobs[i.first].id << " ";
+    for (size_t i = 0; i < n_jobs; ++i)
+        cout << i << " ";
     cout << endl;
-    for (auto i : graph)
-        cout << jobs[i.first].proc_id << " ";
+    for (size_t i = 0; i < n_jobs; ++i)
+        cout << jobs[i].proc_id << " ";
     cout << endl;
-    for (auto i : graph)
-        cout << jobs[i.first].proc_lvl << " ";
+    for (size_t i = 0; i < n_jobs; ++i)
+        cout << jobs[i].proc_lvl << " ";
     cout << endl;
     cout << "-------------->PROC_ID" << endl;
 }

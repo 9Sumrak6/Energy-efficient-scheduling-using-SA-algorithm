@@ -1,35 +1,24 @@
 #pragma once
 
-#include <iostream>
-#include <cstdlib>
-
-#include <vector>
-#include <string>
-#include <set>
-#include <map>
-
-#include <fstream>
-#include <sstream>
-
 #include "Components.hpp"
-
 
 using std::pair, std::vector, std::string, std::set, std::map;
 
 
 class Reader {
 public:
-    pair<int, map<int, set<int>>> readGraph(const string &path, map<int, Job> &jobs);
-    pair<int, map<int, Proc>> readSimpleSys(const string &path, double &max_time);
+    pair<int, vector<set<int>>> readGraph(const string &path, vector<Job> &jobs);
+    pair<int, vector<Proc>> readSimpleSys(const string &path, double &max_time);
 };
 
-pair<int, map<int, set<int>>> Reader::readGraph(const string &path, map<int, Job> &jobs) {
+pair<int, vector<set<int>>> Reader::readGraph(const string &path, vector<Job> &jobs) {
     std::ifstream f(path);
     string line;
     getline(f, line);
 
     int n = stoi(line);
-    pair<int, map<int, set<int>>> res(n, {});
+    pair<int, vector<set<int>>> res(n, vector<set<int>>(n));
+    jobs = vector<Job>(n);
 
     for (int i = 0; i < n; i++) {
         getline(f, line);
@@ -39,7 +28,7 @@ pair<int, map<int, set<int>>> Reader::readGraph(const string &path, map<int, Job
         ss >> id >> time >> freq;
 		
 		jobs[stoi(id)] = Job(stoi(id), stod(time), stod(freq));
-        res.second[stoi(id)] = {};
+        // res.second[stoi(id)] = {};
     }
 
     while (getline(f, line)) {
@@ -54,7 +43,7 @@ pair<int, map<int, set<int>>> Reader::readGraph(const string &path, map<int, Job
     return res;
 }
 
-pair<int, map<int, Proc>> Reader::readSimpleSys(const string &path, double &max_time) {
+pair<int, vector<Proc>> Reader::readSimpleSys(const string &path, double &max_time) {
     std::ifstream f(path);
 
     string line;
@@ -65,7 +54,7 @@ pair<int, map<int, Proc>> Reader::readSimpleSys(const string &path, double &max_
     getline(f, line);    
     int n = stoi(line);
 
-    map<int, Proc> res;
+    vector<Proc> res(n);
 
     getline(f, line);
     std::stringstream ss(line);

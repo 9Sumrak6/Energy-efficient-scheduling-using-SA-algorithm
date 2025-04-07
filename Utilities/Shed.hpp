@@ -1,10 +1,5 @@
 #pragma once
 
-#include <cmath>
-#include <random>
-#include <limits>
-#include <time.h>
-
 #include "Graph.hpp"
 
 bool is_equal(double x, double y) {
@@ -15,24 +10,28 @@ class Shed {
     string inp_path;
     int n_procs;
 
+    double alpha = 0.0;
     double max_time;
-
     double energy;
 
-    map<int, double> extra_time;
-    map<int, vector<int>> rel;
-    map<int, Proc> procs;
-    map<int, int> proc_last_time;
+    int min_job_id = -1;
+
+    vector<double> extra_time;
+    vector<vector<int>> rel;
+    vector<Proc> procs;
+    // map<int, int> proc_last_time;
 public:
     Shed(Graph &graph, const string& path = "Input/sys/default.txt");
+
+    Shed(const Shed& other) = default;
 
     bool is_correct(Graph &graph, map<int, set<int>> &follows);
     
     bool set_random_freq(Graph &graph, int proc_id = -1);
     
-    bool move_job(Graph &graph, int job_id, int proc_id = -1);
+    bool move_random_job(Graph &graph, int proc_id = -1);
     void push_back(Graph &graph, int job_id, int proc_id);
-    bool move_random_job(Graph &graph);
+    // bool move_random_job(Graph &graph);
     bool switch_jobs(Graph &graph, map<int, set<int>> &follows);
 
     double calc_energy();
@@ -56,31 +55,54 @@ Shed::Shed(Graph &graph, const string& path) {
 
     inp_path = path;
 
-    pair<int, map<int, Proc>> res = reader.readSimpleSys(path, max_time);
+    pair<int, vector<Proc>> res = reader.readSimpleSys(path, max_time);
     n_procs = res.first;
     procs = res.second;
+    extra_time = vector<double>(n_procs);
+    rel = vector<vector<int>>(n_procs);
+
+    for (size_t i = 0; i < n_procs; ++i)
+        alpha = max(alpha, procs[i].max_freq / procs[i].min_freq);
+
+    alpha = (alpha + 1) * (alpha + 1);
 
     for (int i = 0; i < n_procs; i++) {
-        proc_last_time[i] = 0;
-        if (i == 0)
-            for (auto j : graph.get_topo())
-                this->push_back(graph, j, 0);
-        else
-            rel[i] = vector<int>(0);
+        // proc_last_time[i] = 0;
         extra_time[i] = 0.0;
+    }
+    int i = 0;
+    for (auto j : graph.get_topo()) {
+        this->push_back(graph, j, i);
+        i = (i + 1) % n_procs;
     }
 
     energy = 0.0;
 }
 
+// Shed::Shed(const Shed& other) {
+//     this->n_procs = other.n_procs;
+//     this->alpha = other.alpha;
+//     this->max_time = other.max_time;
+//     this->energy = other.energy;
+//     this->min_job_id = 0;
+//     this->rel = other.rel;
+//     this->procs = other.procs;
+//     // this->extra_time = other.extra_time;
+//     for (int i = 0; i < n_procs; i++) {
+//         // proc_last_time[i] = 0;
+//         this->extra_time[i] = 0.0;
+//     }
+// }
+
+
 bool Shed::is_correct(Graph &graph, map<int, set<int>> &fols) {
-    for (auto &[id, vec] : rel) {
+    for (size_t i = 0; i < n_procs; ++i) {
         double prev_time = 0.0, prev_dur = 0.0;
-        for (auto &job_id : vec) {
+        for (auto &job_id : rel[i]) {
             Job j = graph.get_job(job_id);
 
             if (prev_time + prev_dur > j.arrive_time) {
-                cout << "1) Proc=" << id << " :: " << "Job=" << job_id << endl;
+                cout << "1) Proc=" << i << " :: " << "Job=" << job_id << endl;
                 return false;
             }
 
@@ -148,20 +170,68 @@ bool Shed::set_random_freq(Graph &graph, int proc_id) {
     return true;
 }
 
-bool Shed::move_job(Graph &graph, int job_id, int proc_id) {
+bool Shed::move_random_job(Graph &graph, int proc_id) {
     if (n_procs == 1)
         return true;
+
+    // this->print(graph);
+
+    int job_id = rand() % graph.get_job_num();
     Job job = graph.get_job(job_id);
+
     int proc = proc_id;
     int cur_proc = job.proc_id;
 
-    if (proc_id < 0) {
+    while (proc < 0 || proc == cur_proc)
         proc = rand() % n_procs;
 
-        while (proc == cur_proc)
-            proc = rand() % n_procs;
-    } else if (proc_id == cur_proc)
-        return false;
+    // cout << "Move " << job_id << " from " << cur_proc << " to " << proc << endl;
+
+    int lpos = -1;
+    for (int k = rel[proc].size() - 1; k >= 0; --k) {
+        if (job.lvl < graph.get_job_lvl(rel[proc][k])) {
+            graph.set_job_proc_lvl(rel[proc][k], -1, true);
+            continue;
+        }
+        lpos = k;
+        break;
+    }
+
+    if (lpos == -1 || lpos < rel[proc].size() - 1)
+        rel[proc].insert(rel[proc].begin() + lpos + 1, job_id);
+    else
+        rel[proc].push_back(job_id);
+
+    if (cur_proc >= 0) {
+        for (int k = rel[cur_proc].size() - 1; k >= 0; --k) {
+            if (job_id != rel[cur_proc][k]) {
+                graph.set_job_proc_lvl(rel[cur_proc][k], -2, true);
+                continue;
+            }
+            // cout << "*****************" << endl;
+            rel[cur_proc].erase(rel[cur_proc].begin() + k);
+            break;
+        }
+    }
+
+    graph.set_job(job_id, proc, true);
+    graph.set_freq(job_id, procs[proc].cur_freq, true);
+    graph.set_job_proc_lvl(job_id, lpos + 1, true);
+
+    // this->print(graph);
+    return true;
+}
+
+/*bool Shed::move_random_job(Graph &graph, int job_id, int proc_id) {
+    if (n_procs == 1)
+        return true;
+
+    Job job = graph.get_job(job_id);
+    int proc = proc_id;
+
+    do {
+        proc = rand() % n_procs;
+    } while (proc == cur_proc);
 
     bool fl = true;
     for (int k = rel[proc].size() - 1; k >= 0; --k) {
@@ -209,92 +279,119 @@ bool Shed::move_job(Graph &graph, int job_id, int proc_id) {
     graph.set_freq(job_id, procs[proc].cur_freq);
 
     return true;
-}
+}*/
 
 void Shed::push_back(Graph &graph, int job_id, int proc_id) {
     rel[proc_id].push_back(job_id);
+
     graph.set_job(job_id, proc_id);
     graph.set_job_proc_lvl(job_id, rel[proc_id].size() - 1);
     graph.set_freq(job_id, procs[proc_id].cur_freq);    
 }
 
 bool Shed::switch_jobs(Graph &graph, map<int, set<int>> &flws) {
-    for (auto &[i, jobs] : rel) {
-        for (size_t j = 0; j < jobs.size(); j++) {
-            if (j + 1 == jobs.size())
-                break;
+    // Локальная переменная для хранения топологии графа
+    vector<int> topo = graph.get_topo();
 
-            int j1 = jobs[j];
-            int j2 = jobs[j + 1];
+    for (int i = 0; i < n_procs; ++i) {
+        for (int j = 0; j < int(rel[i].size()) - 1; ++j) { // Избегаем лишнего break, цикл заканчивается по условию j+1
+            int j1 = rel[i][j];
+            int j2 = rel[i][j + 1];
 
+            // Сохраняем работы и их данные
             Job job1 = graph.get_job(j1);
             Job job2 = graph.get_job(j2);
 
-            if (j == 0 && job1.arrive_time == 0)
-                continue;
+            // Если работа не выполняется (arrive_time == 0), пропускаем её
+            if (j == 0 && job1.arrive_time == 0) continue;
 
-            if (job1.arrive_time + job1.cur_time < job2.arrive_time)
-                continue;
+            // Проверка, можно ли выполнить switch на основе времени
+            if (job1.arrive_time + job1.cur_time < job2.arrive_time) continue;
 
-            if (j > 0 && graph.get_job(j-1).arrive_time + graph.get_job(j-1).cur_time == job1.arrive_time)
-                continue;
+            // Если работы на одинаковых уровнях и могут быть расположены рядом, пропускаем
+            if (j > 0 && graph.get_job(j-1).arrive_time + graph.get_job(j-1).cur_time == job1.arrive_time) continue;
 
-            bool fl = false;
+            bool conflict_found = false;
 
-            vector<int> topo = graph.get_topo();
-            for (int i = job1.lvl; i <= job2.lvl; i++) {
-                if ((i != job1.lvl && flws[j1].find(topo[i]) != flws[j1].end()) || (i != job2.lvl && flws[topo[i]].find(j2) != flws[topo[i]].end())) {
-                    fl = true;
+            // cout << "HERE1" << endl;
+            // Проверка возможных конфликтов на уровне
+            for (int i = job1.lvl; i <= job2.lvl; ++i) {
+                bool fl1 = (i != job1.lvl && flws[j1].find(topo[i]) != flws[j1].end());
+                bool fl2 = (i != job2.lvl && flws[topo[i]].find(j2) != flws[topo[i]].end());
+                
+                if (fl1 || fl2) {
+                    conflict_found = true;
                     break;
                 }
             }
+            // cout << "HERE2" << endl;
 
-            if (fl)
-                continue;
+            // Если есть конфликт, продолжаем с следующими работами
+            if (conflict_found) continue;
 
+            // Выполняем switch
+            // cout << "HERE3" << endl;
             graph.switch_lvl(j1, j2);
-            rel[i][j] = j2;
-            rel[i][j + 1] = j1;
+            std::swap(rel[i][j], rel[i][j + 1]);
 
-            return true;
-        } 
+            // min_job_id = min(rel[i][j], rel[i][j + 1]);
+
+            return true; // Возвращаем true, так как обмен состоялся
+        }
     }
-    return true;
+
+    return false; // Возвращаем false, если обмен не был выполнен
 }
 
+
 void Shed::switch_lvl(int j1, int j2, Graph &graph) {
+    // Переключаем уровни в графе
     graph.switch_lvl(j1, j2);
+    
+    // Получаем информацию о работах
     Job job1 = graph.get_job(j1), job2 = graph.get_job(j2);
     int i = job1.proc_id;
     int i1 = job2.proc_id;
 
+    // Если работы принадлежат разным процессорам или хотя бы одна не имеет процессора, выходим
     if (i != i1 || i < 0 || i1 < 0)
         return;
 
-    if (job1.proc_lvl < job2.proc_lvl) {
-        rel[i].insert(rel[i].begin() + job2.proc_lvl + 1, j1);
-        rel[i].erase(rel[i].begin() + job2.proc_lvl);
-        rel[i].insert(rel[i].begin() + job1.proc_lvl + 1, j2);
-        rel[i].erase(rel[i].begin() + job1.proc_lvl);
-    } else {
-        rel[i].insert(rel[i].begin() + job1.proc_lvl + 1, j2);
-        rel[i].erase(rel[i].begin() + job1.proc_lvl);
-        rel[i].insert(rel[i].begin() + job2.proc_lvl + 1, j1);
-        rel[i].erase(rel[i].begin() + job2.proc_lvl);
+    // Получаем уровни работ
+    int lvl1 = job1.proc_lvl, lvl2 = job2.proc_lvl;
+
+    // Если уровни разные, меняем их местами в rel[i]
+    if (lvl1 != lvl2) {
+        auto& rel_proc = rel[i];
+        
+        // Находим позиции для j1 и j2
+        auto it1 = std::find(rel_proc.begin(), rel_proc.end(), j1);
+        auto it2 = std::find(rel_proc.begin(), rel_proc.end(), j2);
+
+        // Если оба элемента найдены
+        if (it1 != rel_proc.end() && it2 != rel_proc.end()) {
+            // Удаляем работы из их старых позиций
+            std::swap(*it1, *it2);  // Просто меняем местами элементы
+
+            // Вставляем работы в новые позиции
+            // Поддерживаем правильный порядок
+            if (lvl1 < lvl2) {
+                rel_proc.insert(rel_proc.begin() + lvl2, j1);
+                rel_proc.insert(rel_proc.begin() + lvl1, j2);
+            } else {
+                rel_proc.insert(rel_proc.begin() + lvl1, j2);
+                rel_proc.insert(rel_proc.begin() + lvl2, j1);
+            }
+        }
     }
 }
 
-bool Shed::move_random_job(Graph &graph) {
-    return move_job(graph, rand() % graph.get_job_num());
-}
-
-
 double Shed::calc_energy() {
     double energy = 0.0;
-    for (auto &[id, vec] : rel) {
+    for (size_t id = 0; id < n_procs; ++id) {
         Proc proc = procs[id];
 
-        energy += proc.volt * proc.cur_freq * proc.cur_freq * (proc.job_time + 3 * extra_time[id] + (proc.max_time - proc.job_time) / 2);
+        energy += proc.volt * proc.cur_freq * proc.cur_freq * (proc.job_time + alpha * extra_time[id] + (proc.max_time - proc.job_time) / 2);
     }
 
     energy *= 0.5 * procs[0].cap;
@@ -316,29 +413,58 @@ int Shed::get_job_num(Graph &graph) {
 }
 
 void Shed::build_time(Graph &graph) {
-    for (auto &[id, proc] : procs) {
-        proc.max_time = 0;
-        proc.job_time = 0;
-        extra_time[id] = 0.0;
-    }
-    for (auto &i : graph.get_topo())
-        graph.set_prev_time(i, 0, 1);
+    if (min_job_id < 0) {
+        for (size_t id = 0; id < n_procs; ++id) {
+            procs[id].max_time = 0;
+            procs[id].job_time = 0;
+            extra_time[id] = 0.0;
+        }
+        for (auto &i : graph.get_topo())
+            graph.set_prev_time(i, 0, 1);
 
-    for (auto &i : graph.get_topo()) {
-        Job j = graph.get_job(i);
+        for (auto &i : graph.get_topo()) {
+            Job j = graph.get_job(i);
 
-        ull time = graph.set_arr_time(i, max(procs[j.proc_id].max_time, j.prev_time));
+            ull time = graph.set_arr_time(i, max(procs[j.proc_id].max_time, j.prev_time));
 
-        procs[j.proc_id].max_time = time + j.cur_time;
-        procs[j.proc_id].job_time += j.cur_time;
+            procs[j.proc_id].max_time = time + j.cur_time;
+            procs[j.proc_id].job_time += j.cur_time;
 
-        if (time >= this->max_time)
-            extra_time[j.proc_id] += j.cur_time;
-        else if (time + j.cur_time > this->max_time)
-            extra_time[j.proc_id] += time + j.cur_time - this->max_time;
+            if (time >= this->max_time)
+                extra_time[j.proc_id] += j.cur_time;
+            else if (time + j.cur_time > this->max_time)
+                extra_time[j.proc_id] += time + j.cur_time - this->max_time;
 
-        for (auto &fl : graph[i])
-            graph.set_prev_time(fl, procs[j.proc_id].max_time);
+            for (auto &fl : graph[i])
+                graph.set_prev_time(fl, procs[j.proc_id].max_time);
+        }
+    } else {
+        Job j = graph.get_job(min_job_id);
+        ull beg_time = 0;
+
+        if (rel[j.proc_id][0] != min_job_id) {
+            Job tmp = graph.get_job(rel[j.proc_id][j.proc_lvl - 1]);
+            beg_time = tmp.beg_time + tmp.cur_time;
+        }
+
+        for (const auto &prev : graph.get_prevs(min_job_id)) {
+            Job tmp = graph.get_job(prev);
+            beg_time = max(beg_time, tmp.beg_time + tmp.cur_time);
+        }
+
+        graph.set_arr_time(min_job_id, beg_time);
+
+        vector<int> topo = graph.get_topo();
+        for (int lvl = j.lvl; lvl < graph.get_job_num(); ++lvl) {
+            int cur = topo[lvl];
+            if (!graph.is_changed(cur))
+                continue;
+
+            for (auto &fl : graph[cur])
+                graph.set_prev_time(fl, procs[j.proc_id].max_time);
+
+            graph.set_unchanged(cur);
+        }
     }
 }
 
@@ -349,6 +475,8 @@ vector<int> Shed::get_topo(Graph &graph) {
 void Shed::build(Graph &graph) {
     build_time(graph);
     calc_energy();
+
+    min_job_id = -1;
 }
 
 void Shed::print(Graph &graph) {
@@ -356,10 +484,10 @@ void Shed::print(Graph &graph) {
 
     cout << "----------------------------" << endl;
 
-    for (auto &[id, vec] : rel) {
+    for (size_t id = 0; id < n_procs; ++id) {
         cout << "Processor " << id << "(volt=" << procs[id].volt << "; freq=" << procs[id].cur_freq << "; job_t=" << procs[id].job_time << "):: ";
 
-        for (auto job_id : vec) {
+        for (auto job_id : rel[id]) {
             Job j = graph.get_job(job_id);
             cout << "'id=" << j.id << " arrive_time=" << j.arrive_time << " dur=" << j.cur_time << "'    ";
         }
@@ -368,5 +496,4 @@ void Shed::print(Graph &graph) {
     }
     cout << endl << "Result energy consumption = " << energy << endl;
     cout << "----------------------------" << endl;
-
 }

@@ -45,6 +45,9 @@ public:
         return prevs[pos];
     }
 
+    std::string serialize() const;
+    void deserialize(const std::string& data);
+
     bool is_changed(int pos) const { return changed[pos]; }
     Job get_job(int id) const;
     int get_job_num() const ;
@@ -136,12 +139,12 @@ Job Graph::get_job(int id) const {
 }
 
 bool Graph::set_freq(int job_id, double freq, bool fl) {
-    if (fl)
+    if (fl) {
         if (jobs_ch.count(job_id) == 0)
             jobs_ch[job_id] = jobs[job_id];
         else
             jobs_ch[job_id].cur_time = jobs[job_id].cur_time;
-
+    }
     jobs[job_id].cur_time = ceil((jobs[job_id].beg_time * jobs[job_id].beg_freq) / freq);
     return true;
     // }
@@ -150,11 +153,12 @@ bool Graph::set_freq(int job_id, double freq, bool fl) {
 }
 
 void Graph::set_job_proc_lvl(int job_id, int lvl, bool fl) {
-    if (fl)
+    if (fl) {
         if (jobs_ch.count(job_id) == 0)
             jobs_ch[job_id] = jobs[job_id];
         else
             jobs_ch[job_id].proc_lvl = jobs[job_id].proc_lvl;
+    }
 
     if (lvl == -1)
         ++jobs[job_id].proc_lvl;
@@ -235,6 +239,49 @@ bool Graph::set_job(int job_id, int proc_id, bool fl) {
     return true;
 
     // return false;
+}
+
+std::string Graph::serialize() const {
+    std::ostringstream oss;
+
+    // 1. Сериализация вектора jobs
+    oss << jobs.size() << " ";
+    for (const auto& job : jobs) {
+        oss << job.serialize() << "\n";
+    }
+
+    // 2. Сериализация topo
+    oss << topo.size() << " ";
+    for (int val : topo) {
+        oss << val << " ";
+    }
+    oss << "\n";
+
+    return oss.str();
+}
+
+void Graph::deserialize(const std::string& data) {
+    std::istringstream iss(data);
+
+    // 1. Десериализация вектора jobs
+    size_t jobs_size;
+    iss >> jobs_size;
+    jobs.resize(jobs_size);
+    iss.ignore();  // Игнорируем символ '\n' после числа
+
+    for (auto& job : jobs) {
+        std::string job_data;
+        std::getline(iss, job_data);
+        job.deserialize(job_data); // Здесь требуется, чтобы каждое job_data занимало одну строку
+    }
+
+    // 2. Десериализация topo
+    size_t topo_size;
+    iss >> topo_size;
+    topo.resize(topo_size);
+    for (auto& val : topo) {
+        iss >> val;
+    }
 }
 
 int Graph::get_job_num() const {

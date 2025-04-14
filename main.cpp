@@ -153,14 +153,14 @@ int main() {
 
                 // std::cout << "\nBest energy: " << best_energy << "\n";
 
-                std::ifstream infile(path_res);
-                string in;
-                getline(infile, in);
-                double best_prev = stod(in);
+                // std::ifstream infile(path_res);
+                // string in;
+                // getline(infile, in);
+                // double best_prev = stod(in);
 
                 std::ofstream outfile(path_res);
-                outfile << std::min(best_energy, best_prev) << "\n";
-                cout << "Best = " << std::min(best_energy, best_prev) << endl;
+                outfile << best_energy << "\n";
+                cout << "Best = " << best_energy << endl;
             }
         }
         // cout << "HERE" << endl;

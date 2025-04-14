@@ -46,8 +46,10 @@ public:
 
     void build(Graph &graph);
 
+    std::string serialize() const;
+    void deserialize(const string& data);
+
     void print(Graph &graph);
-    void print_rel();
 };
 
 Shed::Shed(Graph &graph, const string& path) {
@@ -473,10 +475,91 @@ vector<int> Shed::get_topo(Graph &graph) {
 }
 
 void Shed::build(Graph &graph) {
+    // auto start = std::chrono::high_resolution_clock::now();
+    
     build_time(graph);
-    calc_energy();
+    
+    // Замер времени окончания и расчёт продолжительности
+    // auto end = std::chrono::high_resolution_clock::now();
+    // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+    
+    // Вывод времени выполнения (можно заменить на логирование)
+    // std::cout << "build_time() executed in: " << duration.count() << " microseconds" << std::endl;
 
+    calc_energy();
     min_job_id = -1;
+}
+
+std::string Shed::serialize() const {
+    std::ostringstream oss;
+    
+    // Сериализация основных полей
+    oss << max_time << " " << energy << " " << min_job_id << " ";
+
+    // Сериализация extra_time
+    oss << extra_time.size() << " ";
+    for (const auto& et : extra_time) {
+        oss << et << " ";
+    }
+
+    // Сериализация rel (вектор векторов)
+    oss << rel.size() << " ";
+    for (const auto& inner_vec : rel) {
+        oss << inner_vec.size() << " ";
+        for (int val : inner_vec) {
+            oss << val << " ";
+        }
+    }
+
+    // Сериализация procs
+    oss << procs.size() << " ";
+    for (const auto& proc : procs) {
+        oss << proc.serialize() << " ";  // Убираем \n для единообразия формата
+    }
+
+    return oss.str();
+}
+
+void Shed::deserialize(const std::string& data) {
+    std::istringstream iss(data);
+    
+    // Десериализация основных полей
+    iss >> max_time >> energy >> min_job_id;
+
+    // Десериализация extra_time
+    size_t et_size;
+    iss >> et_size;
+    extra_time.resize(et_size);
+    for (auto& et : extra_time) {
+        iss >> et;
+    }
+
+    // Десериализация rel
+    size_t rel_size;
+    iss >> rel_size;
+    rel.resize(rel_size);
+    for (auto& inner_vec : rel) {
+        size_t inner_size;
+        iss >> inner_size;
+        inner_vec.resize(inner_size);
+        for (auto& val : inner_vec) {
+            iss >> val;
+        }
+    }
+
+    // Десериализация procs
+    size_t procs_size;
+    iss >> procs_size;
+    procs.resize(procs_size);
+    
+    // Очистка потока перед чтением объектов Proc
+    iss.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
+    
+    for (auto& proc : procs) {
+        std::string proc_data;
+        std::getline(iss, proc_data, ' ');  // Читаем до следующего пробела
+        proc.deserialize(proc_data);
+    }
 }
 
 void Shed::print(Graph &graph) {

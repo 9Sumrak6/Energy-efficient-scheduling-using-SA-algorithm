@@ -502,7 +502,7 @@ std::string Shed::serialize() const {
         oss << et << " ";
     }
 
-    // Сериализация rel (вектор векторов)
+    // Сериализация rel
     oss << rel.size() << " ";
     for (const auto& inner_vec : rel) {
         oss << inner_vec.size() << " ";
@@ -514,7 +514,12 @@ std::string Shed::serialize() const {
     // Сериализация procs
     oss << procs.size() << " ";
     for (const auto& proc : procs) {
-        oss << proc.serialize() << " ";  // Убираем \n для единообразия формата
+        oss << proc.serialize() << "\n";
+    }
+
+    // Проверка состояния потока
+    if (oss.fail()) {
+        throw std::runtime_error("Serialization failed");
     }
 
     return oss.str();
@@ -522,43 +527,60 @@ std::string Shed::serialize() const {
 
 void Shed::deserialize(const std::string& data) {
     std::istringstream iss(data);
-    
-    // Десериализация основных полей
-    iss >> max_time >> energy >> min_job_id;
+    iss.exceptions(std::istream::failbit | std::istream::badbit);
 
-    // Десериализация extra_time
-    size_t et_size;
-    iss >> et_size;
-    extra_time.resize(et_size);
-    for (auto& et : extra_time) {
-        iss >> et;
-    }
+    try {
+        // Десериализация основных полей
+        iss >> max_time >> energy >> min_job_id;
 
-    // Десериализация rel
-    size_t rel_size;
-    iss >> rel_size;
-    rel.resize(rel_size);
-    for (auto& inner_vec : rel) {
-        size_t inner_size;
-        iss >> inner_size;
-        inner_vec.resize(inner_size);
-        for (auto& val : inner_vec) {
-            iss >> val;
+        // Десериализация extra_time
+        size_t et_size;
+        iss >> et_size;
+        extra_time.resize(et_size);
+        for (auto& et : extra_time) {
+            iss >> et;
+        }
+
+        // Десериализация rel
+        size_t rel_size;
+        iss >> rel_size;
+        rel.resize(rel_size);
+        for (auto& inner_vec : rel) {
+            size_t inner_size;
+            iss >> inner_size;
+            inner_vec.resize(inner_size);
+            for (auto& val : inner_vec) {
+                iss >> val;
+            }
+        }
+
+        // Десериализация procs
+        size_t procs_size;
+        iss >> procs_size;
+        procs.resize(procs_size);
+        
+        // Пропускаем пробел перед чтением объектов Proc
+        if (iss.peek() == ' ') {
+            iss.ignore();
+        }
+        
+        for (size_t i = 0; i < procs.size(); ++i) {
+            std::string proc_data;
+            std::getline(iss, proc_data, '\n');
+            if (proc_data.empty() && !iss.eof()) {
+                throw std::runtime_error("Invalid proc data format");
+            }
+            procs[i].deserialize(proc_data);
+        }
+
+        // Проверяем, что все данные были прочитаны
+        if (!iss.eof()) {
+            iss.clear();
+            // throw std::runtime_error("Extra data in input");
         }
     }
-
-    // Десериализация procs
-    size_t procs_size;
-    iss >> procs_size;
-    procs.resize(procs_size);
-    
-    // Очистка потока перед чтением объектов Proc
-    iss.ignore(std::numeric_limits<std::streamsize>::max(), ' ');
-    
-    for (auto& proc : procs) {
-        std::string proc_data;
-        std::getline(iss, proc_data, ' ');  // Читаем до следующего пробела
-        proc.deserialize(proc_data);
+    catch (const std::istream::failure& e) {
+        throw std::runtime_error("Deserialization failed: " + std::string(e.what()));
     }
 }
 

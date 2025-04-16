@@ -20,7 +20,8 @@ using ull = unsigned long long;
 
 constexpr double INIT_TEMP = 20;
 constexpr double MIN_TEMP = 0.1;
-constexpr int STEP_NUM = 201;
+constexpr int STEP_NUM = 100;
+constexpr int PARALLEL_STEP_NUM = 301;
 constexpr double EPS = 0.1;
 
 struct Job {
@@ -43,31 +44,37 @@ struct Job {
 
     std::string serialize() const {
         std::ostringstream oss;
-        oss << id << " "
-            << proc_id << " "
-            << lvl << " "
-            << proc_lvl << " "
-            << arrive_time << " "
-            << prev_time << " "
-            << beg_time << " "
-            << cur_time << " "
-            << beg_freq << " "
-            << weight;
+        // Добавляем проверку на ошибки записи
+        if (!(oss << proc_id << " "
+                << lvl << " "
+                << proc_lvl << " "
+                << arrive_time << " "
+                << prev_time << " "
+                << cur_time << " "
+                << weight)) {
+            throw std::runtime_error("Failed to serialize Job");
+        }
         return oss.str();
     }
-
+    
     void deserialize(const std::string &data) {
         std::istringstream iss(data);
-        iss >> this->id
-            >> this->proc_id
-            >> this->lvl
-            >> this->proc_lvl
-            >> this->arrive_time
-            >> this->prev_time
-            >> this->beg_time
-            >> this->cur_time
-            >> this->beg_freq
-            >> this->weight;
+        // Читаем все поля последовательно
+        if (!(iss >> proc_id
+                >> lvl
+                >> proc_lvl
+                >> arrive_time
+                >> prev_time
+                >> cur_time
+                >> weight)) {
+            throw std::runtime_error("Failed to deserialize Job");
+        }
+        
+        // Проверяем, что все данные были прочитаны
+        std::string remaining;
+        if (std::getline(iss, remaining) && !remaining.empty()) {
+            throw std::runtime_error("Extra data in Job deserialization");
+        }
     }
 
     Job& operator=(const Job&) = default;
@@ -90,29 +97,43 @@ struct Proc {
     Proc() = default;
     Proc(double min_f, double max_f, double s, double v, double c)
         : min_freq(min_f), max_freq(max_f), step(s), cur_freq(max_f), beg_volt(v), volt(v), cap(c) {}
+
     std::string serialize() const {
         std::ostringstream oss;
-        oss << min_freq << " " 
-            << max_freq << " " 
-            << step << " "
-            << cur_freq << " "
-            << beg_volt << " " 
+        oss << cur_freq << " "
             << volt << " " 
-            << cap << " "
             << max_time << " "
             << job_time;
+        
+        // std::cout << "LELELELE1 ----- " << double(max_time) << std::endl;
+        // Проверка на ошибки записи
+        if (oss.fail()) {
+            throw std::runtime_error("Failed to serialize Proc data");
+        }
+        
         return oss.str();
     }
-    void deserialize(const std::string &data) {
+
+    void deserialize(const std::string& data) {
         std::istringstream iss(data);
-        iss >> this->min_freq
-            >> this->max_freq
-            >> this->step
-            >> this->cur_freq
-            >> this->beg_volt
-            >> this->volt
-            >> this->cap
-            >> this->max_time
-            >> this->job_time;
+        iss.exceptions(std::ios::failbit | std::ios::badbit);
+
+        try {
+            iss >> cur_freq;
+            iss >> volt;
+            iss >> max_time;
+            iss >> job_time;
+            
+            // std::cout << "ALL IS OKAY!!!!" << std::endl;
+        
+            // Проверка на лишние данные
+            // char remaining;
+            // if (iss >> remaining) {
+            //     throw std::runtime_error("Extra data in Proc deserialization");
+            // }
+        }
+        catch (const std::ios_base::failure& e) {
+            throw std::runtime_error("Failed to deserialize Proc: " + std::string(e.what()));
+        }
     }
 };

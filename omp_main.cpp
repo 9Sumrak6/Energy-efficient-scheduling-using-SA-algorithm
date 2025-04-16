@@ -11,6 +11,7 @@
 // Константы:
 const int NUM_WORKERS = 4; // Рабочие процессы
 const int COORDINATOR = NUM_WORKERS; // Процесс-координатор
+int rank, world_size, number_iters;
 
 double boltz(int i) {
     return INIT_TEMP / log(i + 1);
@@ -60,7 +61,7 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, std::
 
     while (true) {
         int non_progress = 0;
-        for (int i = 0; i < STEP_NUM; ++i) {
+        for (int i = 1; i < PARALLEL_STEP_NUM; ++i) {
             auto [success, new_shed] = generate_neighbor(cur_shed, graph, flws, fl, rng);
             if (!success) {
                 ++non_progress;
@@ -69,7 +70,7 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, std::
             new_shed->build(graph);
 
             if (!new_shed->is_correct(graph, flws)) {
-            	cout << "LALALA--------------------" << endl;
+                std::runtime_error("Incorrect scheduling on iteration=" + std::to_string(i));
             	return;
             }
 
@@ -93,7 +94,6 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, std::
             }
 
             if (i % 100 == 0) {
-                // cout <<  "HERE!!!" << endl;
                 char toUpdate;
                 MPI_Send(&best, 1, MPI_DOUBLE, COORDINATOR, 0, MPI_COMM_WORLD);
                 MPI_Recv(&toUpdate, 1, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -105,28 +105,53 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, std::
                     unsigned graph_data_size;
                     MPI_Recv(&graph_data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    std::vector<char> data(graph_data_size);
-                    MPI_Recv(data.data(), graph_data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    best_graph.deserialize(std::string(data.begin(), data.end()));
-                    graph.deserialize(std::string(data.begin(), data.end()));
+                    std::vector<char> graph_data(graph_data_size);
+                    MPI_Recv(graph_data.data(), graph_data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
+                    try {
+                        best_graph.deserialize(std::string(graph_data.begin(), graph_data.end()));
+                        graph.deserialize(std::string(graph_data.begin(), graph_data.end()));
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Graph deserialization failed: " + std::string(e.what()));
+                    }
+
+                    // Получение данных shed
                     unsigned shed_data_size;
                     MPI_Recv(&shed_data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    data.resize(shed_data_size);
-                    MPI_Recv(data.data(), shed_data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-                    shed->deserialize(std::string(data.begin(), data.end()));
-                    cur_shed->deserialize(std::string(data.begin(), data.end()));
-                } else if (toUpdate == 0) { // отослать лучшее решение
-                    std::string data = best_graph.serialize();
-                    unsigned data_size = data.size() + 1;
-                    MPI_Send(&data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD);
-                    MPI_Send(data.c_str(), data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD);
+                    std::vector<char> shed_data(shed_data_size);
+                    MPI_Recv(shed_data.data(), shed_data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-                    data = shed->serialize();
-                    data_size = data.size() + 1;
-                    MPI_Send(&data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD);
-                    MPI_Send(data.c_str(), data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD);
+                    try {
+                        shed->deserialize(std::string(shed_data.begin(), shed_data.end()));
+                        cur_shed->deserialize(std::string(shed_data.begin(), shed_data.end()));
+                    } catch (const std::exception& e) {
+                        throw std::runtime_error("Shed deserialization failed: " + std::string(e.what()));
+                    }
+                } else if (toUpdate == 0) { // отослать лучшее решение
+
+                    {
+                        std::string data = best_graph.serialize();
+                        unsigned data_size = data.size() + 1; 
+                    
+                        // Отправляем размер данных
+                        MPI_Send(&data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD);
+                        
+                        // Отправляем сами данные (с нуль-терминатором)
+                        MPI_Send(data.c_str(), data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD);
+                    }
+                    
+                    // Отправка данных shed
+                    {
+                        std::string data = shed->serialize();
+                        unsigned data_size = data.size() + 1;
+                    
+                        // Отправляем размер данных
+                        MPI_Send(&data_size, 1, MPI_UNSIGNED, COORDINATOR, 0, MPI_COMM_WORLD);
+                        
+                        // Отправляем сами данные (с нуль-терминатором)
+                        MPI_Send(data.c_str(), data_size, MPI_CHAR, COORDINATOR, 0, MPI_COMM_WORLD);
+                    }
                 }
 
                 // cout << "OK" << endl;
@@ -140,7 +165,6 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, std::
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
 
-    int rank, world_size;
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
@@ -159,10 +183,13 @@ int main(int argc, char* argv[]) {
             for (auto p : _procs) {
                 if (2 * p > j)
                     break;
+                auto start = std::chrono::high_resolution_clock::now();
+                auto end = start;
 
                 int no_improvement_count = 0;
                 double global_best = std::numeric_limits<double>::infinity();
-                while (no_improvement_count < 100) {
+                number_iters = 0;
+                while (no_improvement_count < 10) {
                     double worker_best_energies;
                     int best_process_rank = -1;
 
@@ -175,11 +202,11 @@ int main(int argc, char* argv[]) {
                             no_improvement_count = 0;
                         }
                     }
-
+                    ++number_iters;
                     // Увеличение количества итераций без улучшений
-                    no_improvement_count++;
+                    ++no_improvement_count;
 
-                    if (no_improvement_count == 100) {
+                    if (no_improvement_count == 10) {
                         for (int i = 0; i < NUM_WORKERS; ++i) {
                             char end = 2;
                             MPI_Send(&end, 1, MPI_CHAR, i, 0, MPI_COMM_WORLD);
@@ -225,11 +252,16 @@ int main(int argc, char* argv[]) {
                     }
                     MPI_Barrier(MPI_COMM_WORLD);
                 }
+                end = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 
                 std::string path_res = "Output/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
                 std::ofstream outfile(path_res);
-                outfile << global_best << "\n";
-                cout << "Best = " << global_best << endl;
+                outfile << "Energy=" << global_best << "\n";
+                outfile << "Time=" << duration << "\n";
+                outfile << "Iterations=" << number_iters * 100 << "\n";
+                outfile.close();
+                // cout << "Best = " << global_best << endl;
 
                 // char end = 2;
                 // for (int i = 0; i < NUM_WORKERS; ++i) {

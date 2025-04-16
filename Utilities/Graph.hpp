@@ -243,44 +243,67 @@ bool Graph::set_job(int job_id, int proc_id, bool fl) {
 
 std::string Graph::serialize() const {
     std::ostringstream oss;
-
+    
     // 1. Сериализация вектора jobs
-    oss << jobs.size() << " ";
+    oss << jobs.size() << "\n";
     for (const auto& job : jobs) {
         oss << job.serialize() << "\n";
     }
 
     // 2. Сериализация topo
-    oss << topo.size() << " ";
+    oss << topo.size() << "\n";
     for (int val : topo) {
         oss << val << " ";
     }
-    oss << "\n";
+    oss << "\n";  // Завершающий перевод строки
+
+    if (oss.fail()) {
+        throw std::runtime_error("Graph serialization failed");
+    }
 
     return oss.str();
 }
 
 void Graph::deserialize(const std::string& data) {
     std::istringstream iss(data);
+    iss.exceptions(std::ios::failbit | std::ios::badbit);
 
-    // 1. Десериализация вектора jobs
-    size_t jobs_size;
-    iss >> jobs_size;
-    jobs.resize(jobs_size);
-    iss.ignore();  // Игнорируем символ '\n' после числа
+    try {
+        // 1. Десериализация jobs
+        size_t jobs_size;
+        iss >> jobs_size;
+        iss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        jobs.resize(jobs_size);
+        for (auto& job : jobs) {
+            std::string job_data;
+            std::getline(iss, job_data);
+            job.deserialize(job_data);
+        }
 
-    for (auto& job : jobs) {
-        std::string job_data;
-        std::getline(iss, job_data);
-        job.deserialize(job_data); // Здесь требуется, чтобы каждое job_data занимало одну строку
+        // 2. Десериализация topo
+        size_t topo_size;
+        iss >> topo_size;
+        iss.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        
+        topo.resize(topo_size);
+        for (auto& val : topo) {
+            iss >> val;
+        }
+
+        // Вместо строгой проверки на EOF просто игнорируем оставшиеся пробелы/переводы строк
+        iss >> std::ws;
+        
+        // Проверяем, что достигнут конец данных (либо после игнорирования пробелов)
+        if (!iss.eof()) {
+            iss.clear();
+            // Если хотим строгую проверку, можно раскомментировать:
+            // throw std::runtime_error("Extra data in input");
+            // Но лучше просто проигнорировать остаток
+        }
     }
-
-    // 2. Десериализация topo
-    size_t topo_size;
-    iss >> topo_size;
-    topo.resize(topo_size);
-    for (auto& val : topo) {
-        iss >> val;
+    catch (const std::ios_base::failure& e) {
+        throw std::runtime_error("Graph deserialization failed: " + std::string(e.what()));
     }
 }
 

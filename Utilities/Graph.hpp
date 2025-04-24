@@ -2,7 +2,6 @@
 
 #include "Reader.hpp"
 
-
 using std::cout, std::endl;
 using std::max;
 

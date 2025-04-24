@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package graph;
+
+import public "job.proto";
+
+message Graph {
+    repeated Job jobs = 1; // Список задач (Job)
+    repeated int32 topo = 2;   // Топологический порядок (список целых чисел)
+}

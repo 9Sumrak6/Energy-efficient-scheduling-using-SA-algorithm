@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package shedule;
+
+import public "proc.proto"; // Импорт файла proc.proto
+
+// Сообщение, представляющее расписание (Shed)
+message Shed {
+    double max_time = 1;             // Максимальное время
+    double energy = 2;               // Энергия
+    int32 min_job_id = 3;            // Минимальный ID задачи
+
+    repeated double extra_time = 4;  // Список дополнительного времени
+    repeated Rel rel = 5;            // Список отношений (Rel)
+    repeated Proc procs = 6;    // Список процессов (Proc)
+}
+
+// Сообщение, представляющее отношение (Rel)
+message Rel {
+    

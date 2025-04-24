@@ -1,0 +1,10 @@
+syntax "proto3";
+
+package job;
+
+message Job {
+    double cur_freq = 1;
+    double volt = 2;
+    double max_time = 3;
+    double job_time = 4;
+}

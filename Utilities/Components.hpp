@@ -18,11 +18,19 @@ using namespace std::chrono;
 
 using ull = unsigned long long;
 
-constexpr double INIT_TEMP = 20;
-constexpr double MIN_TEMP = 0.1;
-constexpr int STEP_NUM = 100;
-constexpr int PARALLEL_STEP_NUM = 301;
-constexpr double EPS = 0.1;
+const double DEFAULT_TEMP = 50;
+double INIT_TEMP = 50;
+
+double CAUCHY_COEF = 5.7;
+double BOLTZ_COEF = 6.15;
+double COMMON_COEF = 17.8;
+
+bool FIRST_TRY = true;
+
+const double MIN_TEMP = 0.1;
+const int STEP_NUM = 100;
+const int PARALLEL_STEP_NUM = 301;
+const double EPS = 0.1;
 
 struct Job {
     int id = -1;

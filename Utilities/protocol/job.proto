@@ -1,0 +1,15 @@
+syntax "proto3";
+
+package job;
+
+message Job {
+    int32 proc_id = 1;
+    int32 lvl = 2;
+    int32 proc_lvl = 3;
+
+    uint64 arrive_time = 4;
+    uint64 prev_time = 5;
+    uint64 cur_time = 6;
+
+    double weight = 7;
+}

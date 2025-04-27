@@ -47,7 +47,7 @@ pair<int, vector<Proc>> Reader::readSimpleSys(const string &path, double &max_ti
     std::ifstream f(path);
 
     string line;
-    
+
     getline(f, line);
     max_time = stod(line);
 
@@ -64,7 +64,7 @@ pair<int, vector<Proc>> Reader::readSimpleSys(const string &path, double &max_ti
 
     getline(f, volt);
     getline(f, cap);
-    
+
     for (int i = 0; i < n; i++)
         res[i] = Proc(stod(min_freq), stod(max_freq), stod(step), stod(volt), stod(cap));
 

@@ -9,12 +9,11 @@ bool is_equal(double x, double y) {
 class Shed {
     string inp_path;
     int n_procs;
+    int min_job_id = -1;
 
     double alpha = 0.0;
     double max_time;
     double energy;
-
-    int min_job_id = -1;
 
     vector<double> extra_time;
     vector<vector<int>> rel;

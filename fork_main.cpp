@@ -191,8 +191,8 @@ int main(int argc, char* argv[]) {
     if (proc_num <= 0)
         return 1;
     
-    std::vector<int> _jobs = {10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000};
-    std::vector<int> _procs = {2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160};
+    const std::vector<int> _jobs = {/*10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, */4000};
+    const std::vector<int> _procs = {/*2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, */160};
     std::vector<std::function<double(int)>> temp_funcitons{boltz, cauchy, law};
 
     struct WPipe { int to_w[2], from_w[2]; };
@@ -223,7 +223,8 @@ int main(int argc, char* argv[]) {
                 for (auto p : _procs) {
                     if (2 * p > j)
                         break;
-
+                    if (j < 200)
+                        continue;
                     for (TEMP_LAW = 0; TEMP_LAW < 3; ++TEMP_LAW) {
                         INIT_TEMP = DEFAULT_TEMP;
 
@@ -258,6 +259,8 @@ int main(int argc, char* argv[]) {
         for (auto p : _procs) {
             if (2 * p > j)
                 break;
+            if (j < 200)
+                continue;
 
             for (TEMP_LAW = 0; TEMP_LAW < 3; ++TEMP_LAW) {
                 std::string temp_dir = TEMP_LAW == 0 ? "boltz/" : (TEMP_LAW == 1 ? "cauchy/" : "common/");
@@ -324,7 +327,7 @@ int main(int argc, char* argv[]) {
                 // Лог необязателен
                 auto end = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-                std::string path_res = "Output/fork_mpi/10/" + temp_dir + std::to_string(j) + "_" + std::to_string(p) +  ".txt";
+                std::string path_res = "Output1/fork_mpi/10/" + temp_dir + std::to_string(j) + "_" + std::to_string(p) +  ".txt";
                 std::ofstream outfile(path_res);
                 outfile << "Energy=" << global_best << "\n";
                 outfile << "Time=" << duration.count() << "\n";

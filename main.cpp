@@ -84,13 +84,6 @@ void sa_shed(std::unique_ptr<Shed>& shed, Graph& graph, Graph& best_graph, map<i
                 graph.backup();
                 ++non_progress;
             }
-            // auto end = std::chrono::high_resolution_clock::now();
-
-		    // Вычисление продолжительности
-		    // std::chrono::duration<double, std::milli> duration = end - start;
-
-		    // Вывод результата
-		    // std::cout << "T: " << duration.count() << std::endl;
         }
 
         temperature = temp_func(++iteration);
@@ -126,7 +119,7 @@ int main() {
                 // std::cout << "Enter name of file with optimum energy (file must be located in directory 'Input/opt/')\n>";
                 // std::cin >> path_res;
                 // path_res = "Output/" + path_res;
-                path_res = "Output/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
+                path_res = "Output/consecutive/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
 
                 map<int, set<int>> flws;
                 Graph graph(flws, path_data), best_graph(graph);

@@ -188,7 +188,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<int> _jobs = {/*10, 20, 30, 40, 50, 100, 200, 300, 400, 500, */1000, 2000, 3000, 4000};
+    std::vector<int> _jobs = {/*10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, */2000, 3000, 4000};
     std::vector<int> _procs = {2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160};
 
     if (rank == COORDINATOR) {
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]) {
             for (auto p : _procs) {
                 if (2 * p > j)
                     break;
-                if (j == 1000 && p < 60)
+                if (j == 2000 && p < 10)
                     continue;
                 for (TEMP_LAW = 0; TEMP_LAW < 3; ++TEMP_LAW) {
                     INIT_TEMP = DEFAULT_TEMP;
@@ -300,13 +300,6 @@ int main(int argc, char* argv[]) {
                     outfile << "Time=" << duration << "\n";
                     outfile << "Iterations=" << number_iters * 100 << "\n";
                     outfile.close();
-                    // cout << "Best = " << global_best << endl;
-
-                    // char end = 2;
-                    // for (int i = 0; i < NUM_WORKERS; ++i) {
-                    //     MPI_Send(&end, 1, MPI_CHAR, i, 0, MPI_COMM_WORLD);
-                    // }
-                    // MPI_Finalize();
                 }
             }
         }
@@ -317,8 +310,10 @@ int main(int argc, char* argv[]) {
             for (auto p : _procs) {
                 if (2 * p > j)
                     break;
-                if (j == 1000 && p < 60)
+
+                if (j == 2000 && p < 10)
                     continue;
+
                 for (TEMP_LAW = 0; TEMP_LAW < 3; ++TEMP_LAW) {
                     INIT_TEMP = DEFAULT_TEMP;
 

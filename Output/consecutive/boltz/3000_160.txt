@@ -1,0 +1,3 @@
+Energy=1.37083e+08
+Time=511425148
+Iterations=8649049

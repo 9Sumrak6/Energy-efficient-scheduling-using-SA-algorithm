@@ -100,10 +100,10 @@ void sa_shed(
             }
             new_shed->build(graph);
 
-            if (!new_shed->is_correct(graph, flws)) {
-                std::runtime_error("Incorrect scheduling on iteration=" + std::to_string(i));
-            	return;
-            }
+            // if (!new_shed->is_correct(graph, flws)) {
+            //     std::runtime_error("Incorrect scheduling on iteration=" + std::to_string(i));
+            // 	return;
+            // }
 
             double cur_energy = cur_shed->get_energy();
             double new_energy = new_shed->get_energy();

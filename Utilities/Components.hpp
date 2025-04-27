@@ -28,7 +28,7 @@ double COMMON_COEF = 17.8;
 bool FIRST_TRY = true;
 
 const double MIN_TEMP = 0.1;
-const int STEP_NUM = 100;
+const int STEP_NUM = 200;
 const int PARALLEL_STEP_NUM = 301;
 const double EPS = 0.1;
 

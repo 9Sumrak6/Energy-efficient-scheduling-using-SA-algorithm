@@ -1,4 +1,20 @@
+*
+
+!*/
+
+!*.cpp
+!*.hpp
+!*.h
+!*.py
+!*.txt
+!*.png
+!*.jpg
+
+# Игнорировать любые исполняемые файлы (Unix/Linux)
+*.out
 *.exe
-*.pdf
-*.zip
+*.dll
+*.so
+*.a
+*.o
 *.bin

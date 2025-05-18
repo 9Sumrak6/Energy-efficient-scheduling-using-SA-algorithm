@@ -17,6 +17,11 @@ data = {
         'boltz': defaultdict(),
         'cauchy': defaultdict(),
         'common': defaultdict()
+    },
+    'consecutive/': {
+        'boltz': defaultdict(),
+        'cauchy': defaultdict(),
+        'common': defaultdict()
     }
 }
 
@@ -29,7 +34,7 @@ time_pattern = re.compile(r'Time=([\d\.]+)(µs)?')
 iter_pattern = re.compile(r'Iterations=(\d+)')
 
 # Обходим структуру папок
-for method in ['mpi/10/', 'fork_mpi/10/']:
+for method in ['mpi/10/', 'fork_mpi/10/', 'consecutive/']:
     for model in ['boltz/', 'cauchy/', 'common/']:
         current_path = os.path.join(root_path, method, model)
         
@@ -73,40 +78,22 @@ for method in ['mpi/10/', 'fork_mpi/10/']:
                     'filename': filename
                 }
 
-# Теперь данные структурированы и доступны для анализа
-# Пример доступа к данным:
-print("MPI_FORK algo:")
-print("boltz:", data['fork_mpi/10/']['boltz'])
-print("cauchy:", data['fork_mpi/10/']['cauchy'])
-print("common:", data['fork_mpi/10/']['common'])
-print("MPI algo:")
-print("boltz:", data['mpi/10/']['boltz'])
-print("cauchy:", data['mpi/10/']['cauchy'])
-print("common:", data['mpi/10/']['common'])
-# print(data['mpi/10/']['boltz']['10_2'])  # Все запуски для n=10, m=2 в MPI/Boltzman
-# print(data['fork_mpi/10/']['cauchy']['1000_100'])  # Все запуски для n=1000, m=100 в Fork-MPI/Cauchy
-# print(data['fork_mpi/10/']['boltz']['300_20']['energy'])
-# Можно преобразовать в pandas DataFrame для удобного анализа
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_metrics(data, title):
+def plot_metrics(data, title, allowed_n, filename):
     fig, axes = plt.subplots(3, 1, figsize=(20, 16))
     fig.suptitle(title, fontsize=20, y=0.995)
 
     models = ['boltz', 'cauchy', 'common']
-    colors = ['#4e79a7', '#f28e2b', '#59a14f']
     metrics = ['energy', 'time', 'iterations']
-    metric_labels = ['Energy', 'Time (s)', 'Iterations']
-    colors = ['yellow', 'red', 'blue']
+    metric_labels = ['E_sol / E_opt', 'Time (s)', 'Iterations']
+    colors = ['red', 'green', "blue"]
     # Соберём все task-ключи, где есть хотя бы по одному значению
     all_keys = set()
     for model in models:
         all_keys.update(data[model].keys())
-    all_keys = sorted(all_keys, key=lambda s: [int(i) for i in s.split('_')])
 
-    # allowed_m = {3, 10, 20, 80, 160}
-    allowed_n = {100, 200, 300, 400, 500}
     all_keys = [key for key in all_keys if int(key.split('_')[0]) in allowed_n]
 
     x = np.arange(len(all_keys))
@@ -131,12 +118,6 @@ def plot_metrics(data, title):
             # Для красоты, если NaN — покажет дырки
             ax.bar(x + i*bar_width, arr, width=bar_width,
                    color=colors[i], label=model.capitalize(), edgecolor=colors[i], alpha=0.87)
-            
-            # Добавим подписи (там, где есть значения)
-            # for xi, v in enumerate(arr):
-            #     if not np.isnan(v):
-            #         ax.text(x[xi] + i*bar_width, v + 0.03*np.nanmax(arr), f'{v:.2f}', 
-            #                 ha='center', va='bottom', fontsize=8)
 
         ax.set_xticks(x + bar_width)
         ax.set_xticklabels(all_keys, rotation=45)
@@ -146,7 +127,16 @@ def plot_metrics(data, title):
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
-    plt.savefig('cmp.png', dpi=1000, bbox_inches='tight')
-    # plt.show()
+    plt.savefig(filename, dpi=1000, bbox_inches='tight')
 
-# plot_metrics(data['fork_mpi/10/'], 'title')
+plot_metrics(data['fork_mpi/10/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/fork.png")
+plot_metrics(data['fork_mpi/10/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/fork.png")
+plot_metrics(data['fork_mpi/10/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/fork.png")
+
+plot_metrics(data['mpi/10/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/mpi.png")
+plot_metrics(data['mpi/10/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/mpi.png")
+plot_metrics(data['mpi/10/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/mpi.png")
+
+plot_metrics(data['consecutive/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/cons.png")
+plot_metrics(data['consecutive/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/cons.png")
+plot_metrics(data['consecutive/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/cons.png")

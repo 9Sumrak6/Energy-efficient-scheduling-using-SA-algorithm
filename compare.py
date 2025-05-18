@@ -89,7 +89,7 @@ if __name__ == "__main__":
                 mpi1 = read_energy(path_mpi1, opt)
                 cons = read_energy(path_cons, opt)
 
-                x[law][p_n].append(file_name)
+                x[law][p_n].append(j_n)
                 y_opt_energy[law][p_n].append(opt)
                 y_fork_energy[law][p_n].append(min(fork, fork1))
                 y_mpi_energy[law][p_n].append(min(mpi, mpi1))
@@ -117,7 +117,7 @@ if __name__ == "__main__":
             plt.plot(X, cons / opt, label='cons')
 
             plt.ylabel('E_res / E_best')
-            plt.xlabel('Test file')
+            plt.xlabel(f'Number of jobs')
 
             plt.legend()
             plt.savefig(f'Graphics/energy/jobs/{law}{i}.png', bbox_inches='tight')
@@ -130,9 +130,6 @@ if __name__ == "__main__":
     y_fork_energy = {}
     y_mpi_energy = {}
     y_cons_energy = {}
-
-    job_num = ["10", "20", "30", "40", "50", "100", "200", "300", "400", "500", "1000", "2000", "3000", "4000"]
-    proc_num = ["2", "3", "4", "5", "10", "20", "40", "60", "80", "100", "120", "140", "160"]
 
     for law in ['boltz/', 'cauchy/', 'common/']:
         x[law] = {}
@@ -171,7 +168,7 @@ if __name__ == "__main__":
                 mpi1 = read_energy(path_mpi1, opt)
                 cons = read_energy(path_cons, opt)
 
-                x[law][j_n].append(file_name)
+                x[law][j_n].append(p_n)
                 y_opt_energy[law][j_n].append(opt)
                 y_fork_energy[law][j_n].append(min(fork, fork1))
                 y_mpi_energy[law][j_n].append(min(mpi, mpi1))
@@ -199,7 +196,7 @@ if __name__ == "__main__":
             plt.plot(X, cons / opt, label='cons')
 
             plt.ylabel('E_res / E_best')
-            plt.xlabel(f'Procs with jobs={i}')
+            plt.xlabel(f'Number of processors')
 
             plt.legend()
             plt.savefig(f'Graphics/energy/procs/{law}{i}.png', bbox_inches='tight')
@@ -212,9 +209,6 @@ if __name__ == "__main__":
     y_fork_time = {}
     y_mpi_time = {}
     y_cons_time = {}
-
-    job_num = ["10", "20", "30", "40", "50", "100", "200", "300", "400", "500", "1000", "2000", "3000", "4000"]
-    proc_num = ["2", "3", "4", "5", "10", "20", "40", "60", "80", "100", "120", "140", "160"]
 
     for law in ['boltz/', 'cauchy/', 'common/']:
         x[law] = {}
@@ -249,7 +243,7 @@ if __name__ == "__main__":
                 mpi1 = read_time(path_mpi1, fork)
                 cons = read_time(path_cons)
 
-                x[law][p_n].append(file_name)
+                x[law][p_n].append(j_n)
                 y_fork_time[law][p_n].append(min(fork, fork1))
                 y_mpi_time[law][p_n].append(min(mpi, mpi1))
                 y_cons_time[law][p_n].append(float(cons))
@@ -275,8 +269,8 @@ if __name__ == "__main__":
             plt.plot(X, mpi, label='mpi')
             plt.plot(X, cons, label='cons')
 
-            plt.ylabel('E_res / E_best')
-            plt.xlabel('Test file')
+            plt.ylabel('Time (s)')
+            plt.xlabel('Number of jobs')
 
             plt.legend()
             plt.savefig(f'Graphics/time/jobs/{law}{i}.png', bbox_inches='tight')
@@ -288,9 +282,6 @@ if __name__ == "__main__":
     y_fork_time = {}
     y_mpi_time = {}
     y_cons_time = {}
-
-    job_num = ["10", "20", "30", "40", "50", "100", "200", "300", "400", "500", "1000", "2000", "3000", "4000"]
-    proc_num = ["2", "3", "4", "5", "10", "20", "40", "60", "80", "100", "120", "140", "160"]
 
     for law in ['boltz/', 'cauchy/', 'common/']:
         x[law] = {}
@@ -329,7 +320,7 @@ if __name__ == "__main__":
                 mpi1 = read_time(path_mpi1, fork)
                 cons = read_time(path_cons)
 
-                x[law][j_n].append(file_name)
+                x[law][j_n].append(p_n)
                 y_opt_time[law][j_n].append(opt)
                 y_fork_time[law][j_n].append(min(fork, fork1))
                 y_mpi_time[law][j_n].append(min(mpi, mpi1))
@@ -356,70 +347,9 @@ if __name__ == "__main__":
             plt.plot(X, mpi, label='mpi')
             plt.plot(X, cons, label='cons')
 
-            plt.ylabel('E_res / E_best')
-            plt.xlabel(f'Procs with jobs={i}')
+            plt.ylabel('Time (s)')
+            plt.xlabel(f'Number of processors')
 
             plt.legend()
             plt.savefig(f'Graphics/time/procs/{law}{i}.png', bbox_inches='tight')
             plt.close()
-    
-    #plot comparison for temps
-    plt.rc('font', **font)
-    X = x['cauchy/']['400']
-    fork_1 = np.array(y_fork_time['cauchy/']['400'], dtype=float)
-    fork_2 = np.array(y_fork_time['boltz/']['400'], dtype=float)
-    fork_3 = np.array(y_fork_time['common/']['400'], dtype=float)
-
-    mpi_1 = np.array(y_mpi_time['cauchy/']['400'], dtype=float)
-    mpi_2 = np.array(y_mpi_time['boltz/']['400'], dtype=float)
-    mpi_3 = np.array(y_mpi_time['common/']['400'], dtype=float)
-
-    plt.figure(figsize=(20, 10))
-    plt.grid(True)
-    plt.title(f'400 jobs')
-
-    plt.plot(X, fork_1, label='fork_cauchy')
-    plt.plot(X, fork_2, label='fork_boltz')
-    plt.plot(X, fork_3, label='fork_common')
-
-    plt.plot(X, mpi_1, label='mpi_cauchy')
-    plt.plot(X, mpi_2, label='mpi_boltz')
-    plt.plot(X, mpi_3, label='mpi_common')
-
-    plt.ylabel('Time')
-    plt.xlabel(f'Procs with jobs=400')
-
-    plt.legend()
-    plt.savefig(f'Graphics/temps/time_400.png', bbox_inches='tight')
-    plt.close()
-
-    #plot comparison for energies
-    plt.rc('font', **font)
-    X = x['cauchy/']['400']
-    opt = np.array(y_opt_energy['cauchy/']['400'], dtype=float)
-    fork_1 = np.array(y_fork_energy['cauchy/']['400'], dtype=float)
-    fork_2 = np.array(y_fork_energy['boltz/']['400'], dtype=float)
-    fork_3 = np.array(y_fork_energy['common/']['400'], dtype=float)
-
-    mpi_1 = np.array(y_mpi_energy['cauchy/']['400'], dtype=float)
-    mpi_2 = np.array(y_mpi_energy['boltz/']['400'], dtype=float)
-    mpi_3 = np.array(y_mpi_energy['common/']['400'], dtype=float)
-
-    plt.figure(figsize=(20, 10))
-    plt.grid(True)
-    plt.title(f'400 jobs')
-
-    plt.plot(X, fork_1 / opt, label='fork_cauchy')
-    plt.plot(X, fork_2 / opt, label='fork_boltz')
-    plt.plot(X, fork_3 / opt, label='fork_common')
-
-    plt.plot(X, mpi_1 / opt, label='mpi_cauchy')
-    plt.plot(X, mpi_2 / opt, label='mpi_boltz')
-    plt.plot(X, mpi_3 / opt, label='mpi_common')
-
-    plt.ylabel('Energy')
-    plt.xlabel(f'Procs with jobs=400')
-
-    plt.legend()
-    plt.savefig(f'Graphics/temps/energy_400.png', bbox_inches='tight')
-    plt.close()

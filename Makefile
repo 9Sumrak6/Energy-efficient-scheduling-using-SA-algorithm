@@ -1,30 +1,49 @@
-
-# Определение компилятора
+# Компиляторы
 CXX := g++
+MPICXX := mpic++
 
-# Файлы с исходным кодом
-SRCS := main.cpp
+# Флаги
+CXXFLAGS := -std=c++17
+MPI_CXXFLAGS := -std=c++23 -O3
 
-# Объектные файлы
-OBJS := main.o
+# Исходники и цели
+INP_GEN_SRC := inp_gen.cpp
+INP_GEN_EXE := inp_gen
 
-# Выходной исполняемый файл
-TARGET := program
+MAIN_SRC := main.cpp
+MAIN_EXE := cons_main
 
-# Флаги компилятора
-CXXFLAGS := -Wall -Wextra -std=c++17
+FORK_SRC := fork_main.cpp
+FORK_EXE := fork_main
 
-# Правило по умолчанию
-all: $(TARGET)
+MPI_SRC := mpi_main.cpp
+MPI_EXE := mpi_main
 
-# Компиляция программы
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) -o $(TARGET) $(OBJS)
+# По умолчанию комиплируем все
+all: $(MAIN_EXE) $(FORK_EXE) $(INP_GEN_EXE) $(MPI_EXE)
 
-# Правило для компиляции .o файлов из .cpp
-%.o: %.cpp
-	$(CXX) $(CXXFLAGS) -c $<
+# Обычная программа
+$(MAIN_EXE): $(MAIN_SRC)
+	$(CXX) $(CXXFLAGS) -o $(MAIN_EXE) $(MAIN_SRC)
+
+# Ветка с fork
+$(FORK_EXE): $(FORK_SRC)
+	$(CXX) $(CXXFLAGS) -o $(FORK_EXE) $(FORK_SRC)
+
+# Ветка с fork
+$(INP_GEN_EXE): $(INP_GEN_SRC)
+	$(CXX) $(CXXFLAGS) -o $(INP_GEN_EXE) $(INP_GEN_SRC)
+
+# MPI-программа
+$(MPI_EXE): $(MPI_SRC)
+	$(MPICXX) $(MPI_CXXFLAGS) -o $(MPI_EXE) $(MPI_SRC)
+
+# Фасадные цели для make cons, make fork, make inp_gen, make mpi
+cons: $(MAIN_EXE)
+fork: $(FORK_EXE)
+generator: $(INP_GEN_EXE)
+mpi: $(MPI_EXE)
 
 # Очистка
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(MAIN_EXE) $(FORK_EXE) $(INP_GEN_EXE) $(MPI_EXE)

@@ -191,8 +191,8 @@ int main(int argc, char* argv[]) {
     if (proc_num <= 0)
         return 1;
     
-    const std::vector<int> _jobs = {/*10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, */4000};
-    const std::vector<int> _procs = {/*2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, */160};
+    const std::vector<int> _jobs = {10, 20, 30, 40, 50, 100, 200, 300, 400, 500, 1000, 2000, 3000, 4000};
+    const std::vector<int> _procs = {2, 3, 4, 5, 10, 20, 40, 60, 80, 100, 120, 140, 160};
     std::vector<std::function<double(int)>> temp_funcitons{boltz, cauchy, law};
 
     struct WPipe { int to_w[2], from_w[2]; };

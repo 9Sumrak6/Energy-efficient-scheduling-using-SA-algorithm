@@ -76,7 +76,7 @@ if __name__ == "__main__":
                 path_fork = "Output/fork_mpi/10/" + law + file_name + ".txt"
                 path_fork1 = "Output1/fork_mpi/10/" + law + file_name + ".txt"
                 path_mpi = "Output/mpi/10/" + law + file_name + ".txt"
-                path_mpi1 = "Output1/mpi/10/" + law + file_name + ".txt"
+                path_mpi1 = "Output/mpi/10/" + law + file_name + ".txt"
                 path_cons = "Output/consecutive/" + law + file_name + ".txt"
 
                 f_opt = open(path_opt, "r")
@@ -158,7 +158,7 @@ if __name__ == "__main__":
                 path_fork = "Output/fork_mpi/10/" + law + file_name + ".txt"
                 path_fork1 = "Output1/fork_mpi/10/" + law + file_name + ".txt"
                 path_mpi = "Output/mpi/10/" + law + file_name + ".txt"
-                path_mpi1 = "Output1/mpi/10/" + law + file_name + ".txt"
+                path_mpi1 = "Output/mpi/10/" + law + file_name + ".txt"
                 path_cons = "Output/consecutive/" + law + file_name + ".txt"
 
                 f_opt = open(path_opt, "r")
@@ -240,7 +240,7 @@ if __name__ == "__main__":
                 path_fork = "Output/fork_mpi/10/" + law + file_name + ".txt"
                 path_fork1 = "Output1/fork_mpi/10/" + law + file_name + ".txt"
                 path_mpi = "Output/mpi/10/" + law + file_name + ".txt"
-                path_mpi1 = "Output1/mpi/10/" + law + file_name + ".txt"
+                path_mpi1 = "Output/mpi/10/" + law + file_name + ".txt"
                 path_cons = "Output/consecutive/" + law + file_name + ".txt"
 
                 fork = read_time(path_fork)
@@ -316,7 +316,7 @@ if __name__ == "__main__":
                 path_fork = "Output/fork_mpi/10/" + law + file_name + ".txt"
                 path_fork1 = "Output1/fork_mpi/10/" + law + file_name + ".txt"
                 path_mpi = "Output/mpi/10/" + law + file_name + ".txt"
-                path_mpi1 = "Output1/mpi/10/" + law + file_name + ".txt"
+                path_mpi1 = "Output/mpi/10/" + law + file_name + ".txt"
                 path_cons = "Output/consecutive/" + law + file_name + ".txt"
 
                 f_opt = open(path_opt, "r")

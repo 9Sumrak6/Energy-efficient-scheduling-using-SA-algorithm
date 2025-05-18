@@ -12,5 +12,6 @@ The program *compare.py* goes through all classes of input data and plots the fu
 ***Minimum system requirements***:
 ```
 c++17
-Python 3.11
+MPI version >= 4.0
+Python 3.10
 ```

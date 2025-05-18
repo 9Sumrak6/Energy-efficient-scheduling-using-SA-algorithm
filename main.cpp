@@ -127,21 +127,10 @@ int main() {
 
                 std::string temp_dir = TEMP_LAW == 0 ? "boltz/" : (TEMP_LAW == 1 ? "cauchy/" : "common/");
                 std::string path_data, path_system, path_res;
-
-                // std::cout << "Enter name of file with graph (file must be located in directory 'Input/data/')\n>";
-                // std::cin >> path_data;
-                // path_system = "Input/sys/" + path_data;
+                
                 path_data = "Input/data/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
-
-                // std::cout << "Enter name of file with system (file must be located in directory 'Input/sys/')\n>";
-                // std::cin >> path_system;
-                // path_system = "Input/sys/" + path_system;
                 path_system = "Input/sys/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
-
-                // std::cout << "Enter name of file with optimum energy (file must be located in directory 'Input/opt/')\n>";
-                // std::cin >> path_res;
-                // path_res = "Output/" + path_res;
-                // path_res = "Output/consecutive/" + std::to_string(j) + "_" + std::to_string(p) + ".txt";
+                path_res = "Output/consecutive/" + temp_dir + std::to_string(j) + "_" + std::to_string(p) +  ".txt";
 
                 map<int, set<int>> flws;
                 Graph graph(flws, path_data), best_graph(graph);
@@ -166,15 +155,8 @@ int main() {
                     continue;
                 }
 
-                // std::cout << "\nBest energy: " << best_energy << "\n";
-
-                // std::ifstream infile(path_res);
-                // string in;
-                // getline(infile, in);
-                // double best_prev = stod(in);
-
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-                path_res = "Output/consecutive/" + temp_dir + std::to_string(j) + "_" + std::to_string(p) +  ".txt";
+
                 std::ofstream outfile(path_res);
                 outfile << "Energy=" << best_energy << "\n";
                 outfile << "Time=" << duration.count() << "\n";

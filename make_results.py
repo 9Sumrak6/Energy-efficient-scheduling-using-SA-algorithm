@@ -120,7 +120,7 @@ def plot_metrics(data, allowed_n, filename, method):
                    color=colors[i], label=model.capitalize(), edgecolor=colors[i], alpha=0.87)
 
         ax.set_xticks(x + bar_width)
-        ax.set_xticklabels(all_keys, fontsize=14, rotation=45)
+        ax.set_xticklabels(all_keys, fontsize=14, rotation=60)
         ax.set_xlabel('Task (n_m)', fontsize=16)
         ax.set_ylabel(label, fontsize=16)
         ax.legend(framealpha=0.94, fontsize=12)
@@ -128,7 +128,7 @@ def plot_metrics(data, allowed_n, filename, method):
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
-    plt.savefig(filename, dpi=1500, bbox_inches='tight')
+    plt.savefig(filename, dpi=1000, bbox_inches='tight')
 
 plot_metrics(data['fork_mpi/10/'], {10, 20, 30, 40, 50}, "Graphics/small/fork.png", "fork")
 plot_metrics(data['fork_mpi/10/'], {100, 200, 300, 400, 500}, "Graphics/middle/fork.png", "fork")

@@ -110,13 +110,13 @@ if __name__ == "__main__":
 
             plt.figure(figsize=(20, 10))
             plt.grid(True)
-            plt.title(f'{i} processors')
+            plt.title(f'{i} processors ({law[:-1]})')
 
             plt.plot(X, fork / opt, label='fork')
             plt.plot(X, mpi / opt, label='mpi')
             plt.plot(X, cons / opt, label='cons')
 
-            plt.ylabel('E_res / E_best')
+            plt.ylabel('Energy (E_res / E_opt)')
             plt.xlabel(f'Number of jobs')
 
             plt.legend()
@@ -189,13 +189,13 @@ if __name__ == "__main__":
 
             plt.figure(figsize=(20, 10))
             plt.grid(True)
-            plt.title(f'{i} jobs')
+            plt.title(f'{i} jobs ({law[:-1]})')
 
             plt.plot(X, fork / opt, label='fork')
             plt.plot(X, mpi / opt, label='mpi')
             plt.plot(X, cons / opt, label='cons')
 
-            plt.ylabel('E_res / E_best')
+            plt.ylabel('Energy (E_res / E_opt)')
             plt.xlabel(f'Number of processors')
 
             plt.legend()
@@ -263,7 +263,7 @@ if __name__ == "__main__":
 
             plt.figure(figsize=(20, 10))
             plt.grid(True)
-            plt.title(f'{i} processors')
+            plt.title(f'{i} processors ({law[:-1]})')
 
             plt.plot(X, fork, label='fork')
             plt.plot(X, mpi, label='mpi')
@@ -341,7 +341,7 @@ if __name__ == "__main__":
 
             plt.figure(figsize=(20, 10))
             plt.grid(True)
-            plt.title(f'{i} jobs')
+            plt.title(f'{i} jobs ({law[:-1]})')
 
             plt.plot(X, fork, label='fork')
             plt.plot(X, mpi, label='mpi')
@@ -353,3 +353,66 @@ if __name__ == "__main__":
             plt.legend()
             plt.savefig(f'Graphics/time/procs/{law}{i}.png', bbox_inches='tight')
             plt.close()
+    
+    #plot comparison for temps
+    X = x['cauchy/']['400']
+    fork_1 = np.array(y_fork_time['cauchy/']['400'], dtype=float)
+    fork_2 = np.array(y_fork_time['boltz/']['400'], dtype=float)
+    fork_3 = np.array(y_fork_time['common/']['400'], dtype=float)
+
+    mpi_1 = np.array(y_mpi_time['cauchy/']['400'], dtype=float)
+    mpi_2 = np.array(y_mpi_time['boltz/']['400'], dtype=float)
+    mpi_3 = np.array(y_mpi_time['common/']['400'], dtype=float)
+
+    cons_1 = np.array(y_cons_time['cauchy/']['400'], dtype=float)
+    cons_2 = np.array(y_cons_time['boltz/']['400'], dtype=float)
+    cons_3 = np.array(y_cons_time['common/']['400'], dtype=float)
+
+    def plot(filename, title, time, X, fork_1, fork_2, fork_3, mpi_1, mpi_2, mpi_3, cons_1, cons_2, cons_3):
+        N = len(X)
+        x = np.arange(N)
+        bar_width = 0.09
+
+        plt.figure(figsize=(22, 8))
+        plt.grid(axis='y', linestyle='--', alpha=0.5)
+
+        # fork - разные цвета, hatch
+        plt.bar(x - 4*bar_width, fork_1, width=bar_width, label='fork_cauchy', color='#3b5b92', hatch='//', alpha=0.85)
+        plt.bar(x - 3*bar_width, fork_2, width=bar_width, label='fork_boltz', color='#3b5b92', hatch='', alpha=0.85)
+        plt.bar(x - 2*bar_width, fork_3, width=bar_width, label='fork_common', color='#3b5b92', hatch='xx', alpha=0.85)
+
+        # mpi - другой цвет
+        plt.bar(x - bar_width, mpi_1, width=bar_width, label='mpi_cauchy', color='#71b340', hatch='//', alpha=0.85)
+        plt.bar(x, mpi_2, width=bar_width, label='mpi_boltz', color='#71b340', hatch='', alpha=0.85)
+        plt.bar(x + bar_width, mpi_3, width=bar_width, label='mpi_common', color='#71b340', hatch='xx', alpha=0.85)
+
+        # cons - ещё другой цвет
+        plt.bar(x + 2*bar_width, cons_1, width=bar_width, label='cons_cauchy', color='#ef8a17', hatch='//', alpha=0.85)
+        plt.bar(x + 3*bar_width, cons_2, width=bar_width, label='cons_boltz', color='#ef8a17', hatch='', alpha=0.85)
+        plt.bar(x + 4*bar_width, cons_3, width=bar_width, label='cons_common', color='#ef8a17', hatch='xx', alpha=0.85)
+
+        plt.yscale('log')
+        
+        plt.xlabel('Number of processors', fontsize=13)
+        plt.ylabel('Time (s)' if time else "Energy (E_res / E_opt)", fontsize=13)
+        plt.title(title, fontsize=15)
+        plt.xticks(x, X, fontsize=11, rotation=0)
+        plt.legend(ncol=3, framealpha=0.90)
+        plt.tight_layout()
+        plt.savefig(filename)
+
+    plot("time.png", "Comparison of fork/mpi/cons times with different laws", 1, X, fork_1, fork_2, fork_3, mpi_1, mpi_2, mpi_3, cons_1, cons_2, cons_3)
+
+    fork_1 = np.array(y_fork_energy['cauchy/']['400'], dtype=float)
+    fork_2 = np.array(y_fork_energy['boltz/']['400'], dtype=float)
+    fork_3 = np.array(y_fork_energy['common/']['400'], dtype=float)
+
+    mpi_1 = np.array(y_mpi_energy['cauchy/']['400'], dtype=float)
+    mpi_2 = np.array(y_mpi_energy['boltz/']['400'], dtype=float)
+    mpi_3 = np.array(y_mpi_energy['common/']['400'], dtype=float)
+
+    cons_1 = np.array(y_cons_energy['cauchy/']['400'], dtype=float)
+    cons_2 = np.array(y_cons_energy['boltz/']['400'], dtype=float)
+    cons_3 = np.array(y_cons_energy['common/']['400'], dtype=float)
+
+    plot("energy.png", "Comparison of fork/mpi/cons energies with different laws", 0, X, fork_1, fork_2, fork_3, mpi_1, mpi_2, mpi_3, cons_1, cons_2, cons_3)

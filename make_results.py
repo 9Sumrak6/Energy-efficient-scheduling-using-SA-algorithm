@@ -81,20 +81,20 @@ for method in ['mpi/10/', 'fork_mpi/10/', 'consecutive/']:
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_metrics(data, title, allowed_n, filename):
+def plot_metrics(data, allowed_n, filename, method):
     fig, axes = plt.subplots(3, 1, figsize=(20, 16))
-    fig.suptitle(title, fontsize=20, y=0.995)
+    fig.suptitle(f"Сomparison of criteria  ({method})", fontsize=20, y=0.995)
 
     models = ['boltz', 'cauchy', 'common']
     metrics = ['energy', 'time', 'iterations']
-    metric_labels = ['E_sol / E_opt', 'Time (s)', 'Iterations']
+    metric_labels = ['E_res / E_opt', 'Time (s)', 'Iterations']
     colors = ['red', 'green', "blue"]
     # Соберём все task-ключи, где есть хотя бы по одному значению
     all_keys = set()
     for model in models:
         all_keys.update(data[model].keys())
 
-    all_keys = [key for key in all_keys if int(key.split('_')[0]) in allowed_n]
+    all_keys = sorted([key for key in all_keys if int(key.split('_')[0]) in allowed_n])
 
     x = np.arange(len(all_keys))
     bar_width = 0.22
@@ -124,19 +124,20 @@ def plot_metrics(data, title, allowed_n, filename):
         ax.set_xlabel('Task (n_m)', fontsize=12)
         ax.set_ylabel(label, fontsize=12)
         ax.legend(framealpha=0.94)
+        ax.set_title(metric)
         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     plt.savefig(filename, dpi=1000, bbox_inches='tight')
 
-plot_metrics(data['fork_mpi/10/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/fork.png")
-plot_metrics(data['fork_mpi/10/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/fork.png")
-plot_metrics(data['fork_mpi/10/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/fork.png")
+plot_metrics(data['fork_mpi/10/'], {10, 20, 30, 40, 50}, "Graphics/small/fork.png", "fork")
+plot_metrics(data['fork_mpi/10/'], {100, 200, 300, 400, 500}, "Graphics/middle/fork.png", "fork")
+plot_metrics(data['fork_mpi/10/'], {1000, 2000, 3000, 4000}, "Graphics/hard/fork.png", "fork")
 
-plot_metrics(data['mpi/10/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/mpi.png")
-plot_metrics(data['mpi/10/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/mpi.png")
-plot_metrics(data['mpi/10/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/mpi.png")
+plot_metrics(data['mpi/10/'], {10, 20, 30, 40, 50}, "Graphics/small/mpi.png", "mpi")
+plot_metrics(data['mpi/10/'], {100, 200, 300, 400, 500}, "Graphics/middle/mpi.png", "mpi")
+plot_metrics(data['mpi/10/'], {1000, 2000, 3000, 4000}, "Graphics/hard/mpi.png", "mpi")
 
-plot_metrics(data['consecutive/'], 'title', {10, 20, 30, 40, 50}, "Graphics/small/cons.png")
-plot_metrics(data['consecutive/'], 'title', {100, 200, 300, 400, 500}, "Graphics/middle/cons.png")
-plot_metrics(data['consecutive/'], 'title', {1000, 2000, 3000, 4000}, "Graphics/hard/cons.png")
+plot_metrics(data['consecutive/'], {10, 20, 30, 40, 50}, "Graphics/small/cons.png", "consecutive")
+plot_metrics(data['consecutive/'], {100, 200, 300, 400, 500}, "Graphics/middle/cons.png", "consecutive")
+plot_metrics(data['consecutive/'], {1000, 2000, 3000, 4000}, "Graphics/hard/cons.png", "consecutive")

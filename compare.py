@@ -373,7 +373,7 @@ if __name__ == "__main__":
         x = np.arange(N)
         bar_width = 0.09
 
-        plt.figure(figsize=(22, 8))
+        plt.figure(figsize=(22, 13))
         plt.grid(axis='y', linestyle='--', alpha=0.5)
 
         # fork - разные цвета, hatch
@@ -393,10 +393,10 @@ if __name__ == "__main__":
 
         plt.yscale('log')
         
-        plt.xlabel('Number of processors', fontsize=13)
-        plt.ylabel('Time (s)' if time else "Energy (E_res / E_opt)", fontsize=13)
-        plt.title(title, fontsize=15)
-        plt.xticks(x, X, fontsize=11, rotation=0)
+        plt.xlabel('Number of processors', fontsize=17)
+        plt.ylabel('Time (s)' if time else "Energy (E_res / E_opt)", fontsize=17)
+        plt.title(title, fontsize=20)
+        plt.xticks(x, X, fontsize=12, rotation=0)
         plt.legend(ncol=3, framealpha=0.90)
         plt.tight_layout()
         plt.savefig(filename)

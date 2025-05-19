@@ -377,20 +377,19 @@ if __name__ == "__main__":
         plt.grid(axis='y', linestyle='--', alpha=0.5)
 
         # fork - разные цвета, hatch
-        plt.bar(x - 4*bar_width, fork_1, width=bar_width, label='fork_cauchy', color='#3b5b92', hatch='//', alpha=0.85)
-        plt.bar(x - 3*bar_width, fork_2, width=bar_width, label='fork_boltz', color='#3b5b92', hatch='', alpha=0.85)
-        plt.bar(x - 2*bar_width, fork_3, width=bar_width, label='fork_common', color='#3b5b92', hatch='xx', alpha=0.85)
+        plt.bar(x - 4*bar_width, fork_1, width=bar_width, label='fork_cauchy', color="#005eff", hatch='', alpha=0.85)
+        plt.bar(x - 3*bar_width, fork_2, width=bar_width, label='fork_boltz', color='#b3bfe6', hatch='xx', alpha=0.85)
+        plt.bar(x - 2*bar_width, fork_3, width=bar_width, label='fork_common', color='purple', hatch='', alpha=0.85)
 
         # mpi - другой цвет
-        plt.bar(x - bar_width, mpi_1, width=bar_width, label='mpi_cauchy', color='#71b340', hatch='//', alpha=0.85)
-        plt.bar(x, mpi_2, width=bar_width, label='mpi_boltz', color='#71b340', hatch='', alpha=0.85)
-        plt.bar(x + bar_width, mpi_3, width=bar_width, label='mpi_common', color='#71b340', hatch='xx', alpha=0.85)
+        plt.bar(x - bar_width, mpi_1, width=bar_width, label='mpi_cauchy', color="#55c500", hatch='', alpha=0.85)
+        plt.bar(x, mpi_2, width=bar_width, label='mpi_boltz', color='#ddebd9', hatch='xx', alpha=0.85)
+        plt.bar(x + bar_width, mpi_3, width=bar_width, label='mpi_common', color='green', hatch='', alpha=0.85)
 
         # cons - ещё другой цвет
-        plt.bar(x + 2*bar_width, cons_1, width=bar_width, label='cons_cauchy', color='#ef8a17', hatch='//', alpha=0.85)
-        plt.bar(x + 3*bar_width, cons_2, width=bar_width, label='cons_boltz', color='#ef8a17', hatch='', alpha=0.85)
-        plt.bar(x + 4*bar_width, cons_3, width=bar_width, label='cons_common', color='#ef8a17', hatch='xx', alpha=0.85)
-
+        plt.bar(x + 2*bar_width, cons_1, width=bar_width, label='cons_cauchy', color="#ff8800", hatch='', alpha=0.85)
+        plt.bar(x + 3*bar_width, cons_2, width=bar_width, label='cons_boltz', color='#ffd8a8', hatch='xx', alpha=0.85)
+        plt.bar(x + 4*bar_width, cons_3, width=bar_width, label='cons_common', color='red', hatch='', alpha=0.85)
         plt.yscale('log')
         
         plt.xlabel('Number of processors', fontsize=17)
